@@ -1,20 +1,20 @@
 module RGeoServer
-  # This class represents the main class of the data model.
+  # This class represents the main class of the data model, and provides all REST APIs to GeoServer.
   # Refer to
   # - http://geoserver.org/display/GEOS/Catalog+Design
-  # - http://docs.geoserver.org/stable/en/user/restconfig/rest-config-api.html#workspaces
+  # - http://docs.geoserver.org/stable/en/user/rest/api/
 
   class Catalog
     include RGeoServer::RestApiClient
 
     attr_reader :config
 
-    # @param [OrderedHash] options
+    # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] loaded from config/$RGEOSERVER_CONFIG or config/defaults.yml
     # @option options [String] :url
     # @option options [String] :user
     # @option options [String] :password
-    def initialize options = {}
-      @config = options
+    def initialize options = nil
+      @config = options || RGeoServer::Config[:geoserver]
     end
 
     def to_s
@@ -59,12 +59,9 @@ module RGeoServer
       return Workspace.new self, :name => name.text if name
     end
 
-    # @return [RGeoServer::Workspace]
+    # @return [RGeoServer::Workspace] get_workspace('default')
     def get_default_workspace
-      response = self.search :workspaces => 'default'
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath("#{Workspace.member_xpath}/name/text()").to_s
-      return Workspace.new self, :name => name
+      get_workspace 'default'
     end
 
     # Assign default workspace
