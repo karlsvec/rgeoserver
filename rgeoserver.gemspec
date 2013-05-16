@@ -4,8 +4,8 @@ Gem::Specification.new do |s|
   s.version = RGeoServer::VERSION
   s.platform = Gem::Platform::RUBY
   s.required_ruby_version = ">=1.9.3"
-  s.authors = ["Renzo Sanchez-Silva", "Darren Hardy"]
-  s.email = ["renzo.sanchez.silva@gmail.com", "drh@stanford.edu"]
+  s.authors = ["Renzo Sanchez-Silva", "Bess Sadler", "Darren Hardy"]
+  s.email = ["drh@stanford.edu"]
   s.summary = %q{GeoServer REST API Ruby library }
   s.description = %q{GeoServer REST API Ruby library : Requires GeoServer 2.1.3+}
   s.homepage = "http://github.com/rnz0/rgeoserver"
@@ -37,5 +37,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency("jettywrapper")
   s.add_development_dependency("pry")
   s.add_development_dependency("debugger", ">=1.5")
+  s.add_development_dependency("irbtools")
   s.add_development_dependency("awesome_print")
 end
