@@ -17,7 +17,7 @@ layers = {
 }
 
 (1..7).each do |cat_id| 
-  cat = RGeoServer::Catalog.new :user=>'admin', :url => "http://geoserver-app#{cat_id}/rest", :password => "osgeo!"
+  cat = RGeoServer::Catalog.new
   ws = cat.get_workspace('cite')
   RGeoServer::ResourceInfo.list(RGeoServer::CoverageStore, cat, layers.keys, :workspace => ws) do |cs|
     cs.description = layers[cs.name]['description']  

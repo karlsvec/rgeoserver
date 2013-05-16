@@ -5,7 +5,7 @@
 
 require 'rgeoserver'
 
-$catalog = RGeoServer::Catalog.new :url => 'http://localhost:8080/geoserver/rest', :user => 'admin', :password => 'geoserver'
+$catalog = RGeoServer::Catalog.new
 
 # 1. Register a POSTGIS database as data store in GeoServer
 connection_parameters = {
