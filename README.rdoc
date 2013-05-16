@@ -5,9 +5,14 @@
 
 RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface. 
 
+Requirements:
+* GeoServer 2.1.3 or later.
+* Ruby 1.9.3
+
 It provides primitive Ruby model abstraction.
 
 == Documentation
+
 The GeoServer REST Configuration API Reference can be found here:
 
 http://docs.geoserver.org/stable/en/user/rest/index.html
@@ -22,14 +27,20 @@ http://docs.geoserver.org/stable/en/user/rest/index.html
 
 Sample usage from an irb console
 
-  > catalog = RGeoServer::Catalog.new :user=>"admin", :url=>"http://10.0.0.2/geoserver/rest", :password=>"osgeo!"
-  => Catalog: http://10.0.0.2/geoserver/rest
+  > require 'rgeoserver'
+  > catalog = RGeoServer::Catalog.new
+  => Catalog: http://localhost:8080/geoserver/rest
   > w = catalog.get_workspace('topp') 
   => RGeoServer::Workspace: topp
   > ds = w.data_stores.first
   => RGeoServer::DataStore: states_shapefile
   > ds.profile
-  => {"name"=>"states_shapefile", "enabled"=>"true", "connectionParameters"=>{"url"=>"file:data/shapefiles/states.shp", "namespace"=>"http://www.openplans.org/topp"}, "featureTypes"=>["states"]} 
+  => {"name"=>"states_shapefile", 
+      "enabled"=>"true", 
+      "connectionParameters"=>{
+        "url"=>"file:data/shapefiles/states.shp", 
+        "namespace"=>"http://www.openplans.org/topp"}, 
+      "featureTypes"=>["states"]} 
   > ft = ds.featuretypes.first
   => RGeoServer::FeatureType: states 
   > ft.profile
@@ -38,59 +49,40 @@ Sample usage from an irb console
   > lyr = RGeoServer::Layer.new c, :name => 'Arc_Sample'
   => RGeoServer::Layer: Arc_Sample 
   > lyr.profile
-  => {"name"=>"Arc_Sample", "path"=>"/", "defaultstyle"=>"rain", "styles"=>["raster"], "type"=>"RASTER", "enabled"=>"true", "attribution"=>{"logoWidth"=>"0", "logoHeight"=>"0"}, "resource"=>{"type"=>"coverage", "name"=>"Arc_Sample", "store"=>"arcGridSample", "workspace"=>"nurc"}, "metadata"=>{"GWC.autoCacheStyles"=>"true", "GWC.metaTilingX"=>"4", "GWC.metaTilingY"=>"4", "GWC.gutter"=>"0", "GWC.cachedNonDefaultStyles"=>"raster", "GWC.enabled"=>"true", "GWC.cacheFormats"=>"image/jpeg,image/png", "GWC.gridSets"=>"EPSG:4326,EPSG:900913"}}
+  => {"name"=>"Arc_Sample", 
+      "path"=>"/", 
+      "defaultstyle"=>"rain", 
+      "styles"=>["raster"], 
+      "type"=>"RASTER", 
+      "enabled"=>"true", 
+      "attribution"=>{"logoWidth"=>"0", "logoHeight"=>"0"}, 
+      "resource"=>{
+        "type"=>"coverage", 
+        "name"=>"Arc_Sample", 
+        "store"=>"arcGridSample", 
+        "workspace"=>"nurc"},
+      "metadata"=>{
+        "GWC.autoCacheStyles"=>"true", 
+        "GWC.metaTilingX"=>"4", 
+        "GWC.metaTilingY"=>"4", 
+        "GWC.gutter"=>"0", 
+        "GWC.cachedNonDefaultStyles"=>"raster", 
+        "GWC.enabled"=>"true", 
+        "GWC.cacheFormats"=>"image/jpeg,image/png", 
+        "GWC.gridSets"=>"EPSG:4326,EPSG:900913"}}
   > sld = lyr.styles.first
   => RGeoServer::Style: raster 
   > sld.profile
-  => {"name"=>"raster", "sld_version"=>"1.0.0", "filename"=>"raster.sld", "sld"=>{"sld_name"=>"raster", "sld_title"=>"Default Raster"}} 
+  => {"name"=>"raster", 
+      "sld_version"=>"1.0.0", 
+      "filename"=>"raster.sld", 
+      "sld"=>{"sld_name"=>"raster", "sld_title"=>"Default Raster"}} 
 
  
-A full sample script creating coverage stores in a small cluster:
-
-  require 'rgeoserver'
-
-  layers = {
-    'south_america_1787' => {
-      'url' => 'file:///geo_data/rumsey/g0411047.tif',
-      'description' => "Map of South America by D'Anville",
-      'type' => 'GeoTIFF'
-     },
-    'city_of_san_francisco_1859' => {
-      'url' => 'file:///geo_data/rumsey/g1030000alpha.tif',
-      'description' => 'Map of San Francisco by the U.S. Coast Survey, with detail of the unsettled lands',
-      'type' => 'GeoTIFF'
-    }
-  }
-
-  (1..7).each do |cat_id|
-    cat = RGeoServer::Catalog.new :user=>'admin', :url => "http://geoserver-app#{cat_id}/rest", :password => "osgeo!"
-    ws = cat.get_default_workspace
-    cat.list(RGeoServer::CoverageStore, layers.keys, :workspace => ws) do |cs|
-      cs.url = layers[cs.name]['url']
-      cs.data_type = layers[cs.name]['type']
-      cs.enabled = 'true'
-      cs.save
-      # Create the corresponding layer
-      c = RGeoServer::Coverage.new cat, :workspace => ws, :coverage_store => cs, :name => cs.name 
-      c.title = cs_name.gsub('_',' ').titleize
-      c.abstract = layers[cs.name]['description']
-      c.save
-      # Seed the tile cache
-      l = RGeoServer::Layer.new cat, :name => cs.name
-      l.seed :issue, {
-        :srs => {
-          :number => 4326
-        },
-        :zoomStart => 1,
-        :zoomStop => 10,
-        :format => 'image/png',
-        :threadCount => 1
-      }
-    end
-  end
-
+See *examples* directory for more examples.
 
 == Testing
+
 We use {jettywrapper}[https://github.com/projecthydra/jettywrapper] to wrap a test instance of GeoServer. In theory, you should be able to point to any other local installation. Suppose that you download the binary stable version 2.1.3 binary from {here}[http://sourceforge.net/project/downloading.php?groupname=geoserver&filename=geoserver-2.1.3-bin.zip&use_mirror=softlayer], then unzip it under say, /tmp/geoserver-2.1.3. The integration tests are executed as follows:
   $ rake integration['/tmp/geoserver-2.1.3','8080','-DGEOSERVER_DATA_DIR=data_dir']
 
@@ -105,6 +97,7 @@ To enter into an irb console with all classess loaded:
   $ rake console
 
 == Logging
+
 For now we use {RestClient's}[https://github.com/archiloque/rest-client] base logger. It can be enabled by setting:
 
   RestClient.log = '/tmp/restclient.log'
@@ -121,6 +114,7 @@ or set an environment variable, for example:
 
 
 == Related Resources
+
 * {OSGeo The Open Source Geospatial Foundation}[http://www.osgeo.org]
 * {GeoServer Project page}[http://docs.geoserver.org/stable/en/user/index.html]
 * {GeoServer Catalog design}[http://bit.ly/JrX1J8]
@@ -130,9 +124,11 @@ or set an environment variable, for example:
 
 == Release History
 
+- <b>v0.6</b> - Simplified API for simple layer uploads, use config/config_defaults.yml for default RGeoServer::Catalog
 - <b>v0.5</b> - Initial alpha release
 
 == TODO
+
 - Complete data stores and coverages functionality and data upload.
 - Complete updating data in objects. On failure, objects should roll back.
 - Complete documentation.
@@ -149,6 +145,7 @@ or set an environment variable, for example:
 result as the ResourceInfo#save method.
 
 == Contributing with Patches and Pull requests checklist
+
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it
 * Fork the project
@@ -159,17 +156,19 @@ result as the ResourceInfo#save method.
 
 
 == Acknowledgements
+
 Inspired on the {Rubydora}[https://github.com/cbeer/rubydora] gem. Followed somewhat closely to {gsconfig.py}[https://github.com/dwins/gsconfig.py] 
 
 == Contributors
+
 This package is supported and maintained by Stanford University Libraries.
 
+Author: Renzo Sanchez-Silva <renzo.sanchez.silva@gmail.com>.
 Bess Sadler <bess@stanford.edu>
+Darren Hardy <drh@stanford.edu>
 
 == License 
 
-Copyright (c) 2012 Stanford University
-
-Author: Renzo Sanchez-Silva <renzo.sanchez.silva@gmail.com>.
+Copyright (c) 2012-2013 Stanford University
 
 Licensed under the Apache License, Version 2.0
