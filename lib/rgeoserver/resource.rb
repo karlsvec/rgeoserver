@@ -51,7 +51,7 @@ module RGeoServer
         end
       end
 
-      def initialize options
+      def initialize options = nil
         @new = true
       end
 
