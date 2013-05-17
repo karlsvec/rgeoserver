@@ -2,7 +2,7 @@
 module RGeoServer
   # A feature type is a vector based spatial resource or data set that originates from a data store. In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store. In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with each feature type corresponding to a table in the database.
   class FeatureType < ResourceInfo
-    OBJ_ATTRIBUTES = {:catalog => "catalog", :name => "name", :workspace => "workspace", :data_store => "data_store", :enabled => "enabled", :metadata_links => "metadataLinks", :title => "title", :abstract => "abstract", :native_bounds => 'native_bounds', :latlon_bounds => "latlon_bounds", :projection_policy => 'projection_policy'}
+    OBJ_ATTRIBUTES = {:catalog => "catalog", :name => "name", :workspace => "workspace", :data_store => "data_store", :enabled => "enabled", :metadata_links => "metadataLinks", :data_links => "DataURL", :title => "title", :abstract => "abstract", :native_bounds => 'native_bounds', :latlon_bounds => "latlon_bounds", :projection_policy => 'projection_policy'}
     OBJ_DEFAULT_ATTRIBUTES =
       {
       :catalog => nil,
@@ -11,6 +11,7 @@ module RGeoServer
       :name => nil,
       :enabled => "false",
       :metadata_links => [],
+      :data_links => [],
       :title => nil,
       :abstract => nil,
       :native_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
@@ -52,6 +53,16 @@ module RGeoServer
           xml.enabled @enabled if (enabled_changed? || new?)
           xml.title title
           xml.abstract abstract
+          xml.keywords {
+            @keywords.each{ |k|
+              xml.string {
+                # United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
+                "#{k[:keyword]}" +
+                (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
+                (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
+              }
+            }
+          } if metadata_links_changed?
 
           xml.store(:class => 'dataStore') {
             xml.name @data_store.name
@@ -95,7 +106,29 @@ module RGeoServer
                 }
               }
             } if metadata_links_changed?
+            # <MetadataURL type="TC211">
+            # <Format>text/xml</Format>
+            # <OnlineResource xlink:type="simple" xlink:href="http://kurma-podd1.stanford.edu/geoserver/www/metadata/cs838pw3418.xml"/>
+            # </MetadataURL>
+            
+            @metadata_links.each{ |m|
+              xml.metadataURL {
+                xml.format m['format']
+                xml.onlineResource {
+                  xml.attribute {
+                    'xlink:type' => 'simple',
+                    'xlink:href' => m['url']
+                  }
+                } 
+              }
+            }
           end
+          @data_links.each {|l|
+            xml.dataURL {
+              xml.format l['format']
+              xml.onlineResource l['onlineResource']
+            }
+          }
         }
       end
       @message = builder.doc.to_xml
