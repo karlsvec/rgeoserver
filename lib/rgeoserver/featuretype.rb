@@ -1,8 +1,8 @@
 
 module RGeoServer
   # A feature type is a vector based spatial resource or data set that originates from a data store. In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store. In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with each feature type corresponding to a table in the database.
-  class FeatureType < ResourceInfo
-    OBJ_ATTRIBUTES = {:catalog => "catalog", :name => "name", :workspace => "workspace", :data_store => "data_store", :enabled => "enabled", :metadata_links => "metadataLinks", :data_links => "DataURL", :title => "title", :abstract => "abstract", :native_bounds => 'native_bounds', :latlon_bounds => "latlon_bounds", :projection_policy => 'projection_policy'}
+  class FeatureType < ResourceInfo    
+    OBJ_ATTRIBUTES = {:catalog => "catalog", :name => "name", :workspace => "workspace", :data_store => "data_store", :enabled => "enabled", :metadata_links => "metadataLinks", :title => "title", :abstract => "abstract", :native_bounds => 'native_bounds', :latlon_bounds => "latlon_bounds", :projection_policy => 'projection_policy'}
     OBJ_DEFAULT_ATTRIBUTES =
       {
       :catalog => nil,
@@ -26,6 +26,12 @@ module RGeoServer
     @@root = "featureTypes"
     @@resource_name = "featureType"
 
+    # see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
+    @@metadata_types = {
+      'ISO19139' => 'application/vnd.iso.19139+xml',
+      'TC211' => 'application/vnd.iso.19139+xml'
+    }
+
     def self.root
       @@root
     end
@@ -46,6 +52,14 @@ module RGeoServer
       raise ArgumentError, "workspace not defined" unless @workspace
       raise ArgumentError, "data_store not defined" unless @data_store
       @@route % [@workspace.name , @data_store.name]
+    end
+    
+    def to_mimetype(type, default = 'text/xml')
+      if @@metadata_types.include?(type) 
+        @@metadata_types[type]
+      else
+        default
+      end
     end
 
     # <MetadataURL type="TC211">
@@ -107,7 +121,7 @@ module RGeoServer
             xml.metadataLinks {
               @metadata_links.each do |m|
                 xml.metadataLink {
-                  xml.type_ m['type']
+                  xml.type_ to_mimetype(m['metadataType'], m['type'])
                   xml.metadataType m['metadataType']
                   xml.content m['content']
                 }
