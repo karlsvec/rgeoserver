@@ -1,5 +1,5 @@
 geoserver:
   url: "http://localhost:8080/geoserver/rest"
-  user: admin
-  password: admin123
+  user: "admin"
+  password: "admin123"
   geowebcache_url: "http://localhost:8080/geoserver/gwc/rest"
