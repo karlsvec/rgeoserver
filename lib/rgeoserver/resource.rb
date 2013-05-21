@@ -40,15 +40,15 @@ module RGeoServer
       def self.list klass, catalog, names, options, check_remote = false, &block
         if names.nil?
           return []
-        elsif !block_given?
-          to_enum(:list, klass, catalog, names, options).to_a unless block_given?
-        else
-          (names.is_a?(Array)? names : [names]).each { |name|
+        elsif block_given?
+          (names.is_a?(Array)? names : [names]).each do |name|
             obj = klass.new catalog, options.merge(:name => name)
             obj.new? if check_remote
             block.call(obj)
-          }
-        end
+          end
+        else
+          to_enum(:list, klass, catalog, names, options).to_a
+        end        
       end
 
       def initialize options = nil

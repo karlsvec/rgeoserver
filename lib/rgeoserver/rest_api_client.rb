@@ -59,7 +59,7 @@ module RGeoServer
       sub_url.slice! client.url
       fetcher = client[sub_url] 
       fetcher.options.merge(options)
-      begin 
+      begin
         return fetcher.get if method == :get  
         fetcher.send method, data 
       rescue RestClient::InternalServerError => e 

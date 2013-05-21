@@ -15,13 +15,14 @@ module RGeoServer
     # @option options [String] :password
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
+      raise ArgumentError.new("Catalog: Requires :url option") unless @config.include?(:url)
     end
 
     def to_s
       "Catalog: #{@config[:url]}"
     end
 
-    def headers format
+    def headers format = :xml
       sym = :xml || format.to_sym
       {:accept => sym, :content_type=> sym}
     end
@@ -50,10 +51,10 @@ module RGeoServer
       list Workspace, workspaces, {}, &block
     end
 
-    # @param [String] workspace name
+    # @param ws [String] workspace name
     # @return [RGeoServer::Workspace]
-    def get_workspace workspace
-      response = self.search :workspaces => workspace
+    def get_workspace ws
+      response = self.search :workspaces => ws
       doc = Nokogiri::XML(response)
       name = doc.at_xpath(Workspace.member_xpath)
       return Workspace.new self, :name => name.text if name
@@ -74,6 +75,7 @@ module RGeoServer
       dws
     end
 
+    # @deprecated see RGeoServer::Workspace
     # @param [String] store
     # @param [String] workspace
     def reassign_workspace store, workspace
@@ -175,20 +177,18 @@ module RGeoServer
     # @param [String] workspace
     # @return [Array<RGeoServer::DataStore>]
     def get_data_stores workspace = nil
-      ws = workspace.nil?? get_workspaces :  [get_workspace(workspace)]
-      ds = []
-      ws.each{ |w| ds += w.data_stores if w.data_stores }
-      ds
+      ws = workspace.nil?? get_workspaces : [get_workspace(workspace)]
+      ws.map { |w| w.data_stores }.flatten
     end
 
     # @param [String] workspace
     # @param [String] datastore
     # @return [RGeoServer::DataStore]
     def get_data_store workspace, datastore
-      response = self.search({:workspaces => workspace, :name => datastore})
+      response = self.search({:workspaces => workspace, :datastores => datastore})
       doc = Nokogiri::XML(response)
-      name = doc.at_xpath(DataStore.member_xpath)
-      return DataStore.new self, workspace, name.text if name
+      name = doc.at_xpath('/dataStore/name')
+      return DataStore.new self, :workspace => workspace, :name => name.text
     end
 
     # List of feature types
@@ -214,10 +214,8 @@ module RGeoServer
     # @param [String] workspace
     # @return [Array<RGeoServer::CoverageStore>]
     def get_coverage_stores workspace = nil
-      ws = workspace.nil?? get_workspaces :  [get_workspace(workspace)]
-      cs = []
-      ws.each{ |w| cs += w.coverage_stores if w.coverage_stores }
-      cs
+      ws = workspace.nil?? get_workspaces : [get_workspace(workspace)]
+      ws.map { |w| w.coverage_stores }.flatten
     end
 
     # @param [String] workspace
@@ -239,10 +237,8 @@ module RGeoServer
     # @param [String] workspace
     # @return [Array<RGeoServer::WmsStore>]
     def get_wms_stores workspace = nil
-      ws = workspace.nil?? get_workspaces :  [get_workspace(workspace)]
-      cs = []
-      ws.each{ |w| cs += w.wms_stores if w.wms_stores }
-      cs
+      ws = workspace.nil?? get_workspaces : [get_workspace(workspace)]
+      ws.map { |w| w.wms_stores }.flatten
     end
 
     # @param [String] workspace
