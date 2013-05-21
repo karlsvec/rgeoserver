@@ -16,7 +16,7 @@ module RGeoServer
       new_base = new_base.gsub(/\/$/,'')
       new_base += ".#{format}"
       new_base += (("?#{options.map { |key, value|  "#{CGI::escape(key.to_s)}=#{CGI::escape(value.to_s)}"}.join("&")  }" if options and not options.empty?) || '')
-      # ap({:base => base, :new_base => new_base }) if $DEBUG
+      # ap({:base => base, :new_base => new_base })
       new_base
     end
 

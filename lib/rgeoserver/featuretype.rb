@@ -49,6 +49,8 @@ module RGeoServer
     end
 
     def route
+      raise ArgumentError, "workspace not defined" unless @workspace
+      raise ArgumentError, "data_store not defined" unless @data_store
       @@route % [@workspace.name , @data_store.name]
     end
     
@@ -60,6 +62,11 @@ module RGeoServer
       end
     end
 
+    # <MetadataURL type="TC211">
+    # <Format>text/xml</Format>
+    # <OnlineResource xlink:type="simple" xlink:href="http://kurma-podd1.stanford.edu/geoserver/www/metadata/cs838pw3418.xml"/>
+    # </MetadataURL>
+
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
@@ -68,14 +75,14 @@ module RGeoServer
           xml.title title
           xml.abstract abstract
           xml.keywords {
-            @keywords.each{ |k|
+            @keywords.each do |k|
               xml.string {
                 # United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
                 "#{k[:keyword]}" +
                 (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
                 (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
               }
-            }
+            end
           } if metadata_links_changed?
 
           xml.store(:class => 'dataStore') {
@@ -112,37 +119,33 @@ module RGeoServer
             }
           else
             xml.metadataLinks {
-              @metadata_links.each{ |m|
+              @metadata_links.each do |m|
                 xml.metadataLink {
                   xml.type_ to_mimetype(m['metadataType'], m['type'])
                   xml.metadataType m['metadataType']
                   xml.content m['content']
                 }
-              }
+              end
             } if metadata_links_changed?
-            # <MetadataURL type="TC211">
-            # <Format>text/xml</Format>
-            # <OnlineResource xlink:type="simple" xlink:href="http://kurma-podd1.stanford.edu/geoserver/www/metadata/cs838pw3418.xml"/>
-            # </MetadataURL>
             
-            @metadata_links.each{ |m|
+            @metadata_links.each do |m|
               xml.metadataURL {
                 xml.format m['format']
                 xml.onlineResource {
                   xml.attribute {
-                    'xlink:type' => 'simple',
-                    'xlink:href' => m['url']
+                    xml.xlink.type 'simple'
+                    xml.xlink.href m['url']
                   }
                 } 
               }
-            }
+              end
           end
-          @data_links.each {|l|
+          @data_links.each do |l|
             xml.dataURL {
               xml.format l['format']
               xml.onlineResource l['onlineResource']
             }
-          }
+          end
         }
       end
       @message = builder.doc.to_xml
@@ -152,7 +155,9 @@ module RGeoServer
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     def initialize catalog, options
-      super({})
+      raise ArgumentError, "FeatureType.new requires :data_store option" unless options.include?(:data_store)
+      raise ArgumentError, "FeatureType.new requires :name option" unless options.include?(:name)
+      
       _run_initialize_callbacks do
         @catalog = catalog
         workspace = options[:workspace] || 'default'
@@ -161,15 +166,16 @@ module RGeoServer
         elsif workspace.instance_of? Workspace
           @workspace = workspace
         else
-          raise "Not a valid workspace"
+          raise ArgumentError, "Not a valid workspace: #{workspace}"
         end
+        
         data_store = options[:data_store]
         if data_store.instance_of? String
-          @data_store = DataStore.new @catalog, :workspace => @workspace, :name => data_store
+          @data_store = @catalog.get_data_store(@workspace.name, data_store)
         elsif data_store.instance_of? DataStore
           @data_store = data_store
         else
-          raise "Not a valid data store"
+          raise ArgumentError, "Not a valid datastore: #{data_store}"
         end
 
         @name = options[:name].strip

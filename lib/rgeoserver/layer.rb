@@ -98,14 +98,18 @@ module RGeoServer
 
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
-    # @option options [String] :name
+    # @option options [String] :name required
     # @option options [String] :default_style
     # @option options [Array<String>] :alternate_styles
     def initialize catalog, options
       super({})
       _run_initialize_callbacks do
         @catalog = catalog
+        raise ArgumentError, "Layer requires :name option" unless options.include? :name
         @name = options[:name].strip
+        
+        raise NotImplementedError, ":default_style" if options.include? :default_style
+        raise NotImplementedError, ":alternate_styles" if options.include? :alternate_styles
         #@default_style = options[:default_style] || ''
         #@alternate_styles = options[:alternate_styles] || []
       end
@@ -116,7 +120,7 @@ module RGeoServer
       if r.is_a?(RGeoServer::Coverage) || r.is_a?(RGeoServer::FeatureType)
         @resource = r
       else
-        raise 'Unknown resource type'
+        raise ArgumentError, 'Unknown resource type: #{r.class}'
       end
     end
 
@@ -132,9 +136,17 @@ module RGeoServer
           when 'coverage'
             return RGeoServer::Coverage.new @catalog, :workspace => workspace, :coverage_store => store, :name => name
           when 'featureType'
-            return RGeoServer::FeatureType.new @catalog, :workspace => workspace, :data_store => store, :name => name
+            ap({:catalog => @catalog, :workspace => workspace, :data_store => store, :name => name})
+            begin
+              ft = RGeoServer::FeatureType.new @catalog, :workspace => workspace, :data_store => store, :name => name
+              ap({:featureType => ft})
+            rescue Exception => e
+              ap({:errormsg => "#{e}", :error => e, :trace => e.backtrace})
+            end
+            
+            return ft
           else
-            raise 'Unknown resource type'
+            raise ArgumentError, 'Unknown resource type: #{data_type}'
           end
         else
           nil
@@ -217,7 +229,7 @@ module RGeoServer
       when :truncate
         @catalog.do_url sub_path, :post, build_seed_request(:truncate, options), {}, @catalog.gwc_client
       when :status
-        raise NotImplementedError
+        raise NotImplementedError, "#{op}"
       end
     end
 
