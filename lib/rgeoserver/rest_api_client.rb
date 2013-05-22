@@ -41,7 +41,7 @@ module RGeoServer
       resources = client[url_for(what, options)]
       resources.options[:headers] = h
       begin
-        ap ({ :func => { :search => what }, :request => resources })
+        ap ({ :func => { :search => what }, :request => resources }) if $DEBUG
         return resources.get
       rescue RestClient::InternalServerError => e
         $logger.error e.response
