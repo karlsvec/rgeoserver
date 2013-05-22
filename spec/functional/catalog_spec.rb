@@ -45,7 +45,7 @@ describe RGeoServer::GeoServerUrlHelpers do
     it "#get_layers" do
       @c.get_layers.size.should > 0
       @c.get_layers.each do |l|
-        ap l.resource
+        # ap l.resource
       end
     end
   end

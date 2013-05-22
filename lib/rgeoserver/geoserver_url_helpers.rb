@@ -39,9 +39,11 @@ module RGeoServer
     # - workspaces/_name_/datastores/_name_/featuretype/_name_.xml
     def url_for base, options = {}
       raise ArgumentError, "options must be Hash" unless options.is_a? Hash
-      base = { base.to_sym => nil } if base.is_a? String
-      
-      
+      if base.is_a? String
+        $stderr.puts "WARNING: deprecated usage -- base should be Hash"
+        base = { base.to_sym => nil } if base.is_a? String
+      end
+
       base = Hash[base.map {|k,v| [k.to_sym, v]}] unless base.keys.select {|k| not k.is_a? Symbol}.size == 0
       
       format = (options.delete(:format) if options.include?(:format)) || :xml
