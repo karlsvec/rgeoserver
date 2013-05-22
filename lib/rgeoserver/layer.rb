@@ -139,7 +139,7 @@ module RGeoServer
             ap({:catalog => @catalog, :workspace => workspace, :data_store => store, :name => name})
             begin
               ft = RGeoServer::FeatureType.new @catalog, :workspace => workspace, :data_store => store, :name => name
-              ap({:featureType => ft})
+              ap({:featureType => ft, :route => ft.route})
             rescue Exception => e
               ap({:errormsg => "#{e}", :error => e, :trace => e.backtrace})
             end
