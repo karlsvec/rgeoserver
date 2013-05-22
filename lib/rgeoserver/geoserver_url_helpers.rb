@@ -41,11 +41,14 @@ module RGeoServer
       raise ArgumentError, "options must be Hash" unless options.is_a? Hash
       base = { base.to_sym => nil } if base.is_a? String
       
+      
+      base = Hash[base.map {|k,v| [k.to_sym, v]}] unless base.keys.select {|k| not k.is_a? Symbol}.size == 0
+      
       format = (options.delete(:format) if options.include?(:format)) || :xml
       raise ArgumentError, "Unknown REST API format: '#{format}'" unless @@URI_FORMATS.include?(format)
       
       base.keys.each do |k|
-        raise ArgumentError, "Unknown REST API component: '#{k}'" unless @@URI_BASES.include?(k)
+        raise ArgumentError, "Unknown REST API component: '#{k}' #{k.class}" unless @@URI_BASES.include?(k)
       end
       
       # implement rules for ordering

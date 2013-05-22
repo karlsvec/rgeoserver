@@ -53,11 +53,11 @@ module RGeoServer
 
     # @param ws [String] workspace name
     # @return [RGeoServer::Workspace]
-    def get_workspace name
-      response = self.search :workspaces => name
+    def get_workspace ws
+      response = self.search :workspaces => ws
       doc = Nokogiri::XML(response)
-      raise ArgumentError, "Cannot find workspace #{name}" unless doc.at_xpath(Workspace.member_xpath)
-      return Workspace.new self, name
+      name = doc.at_xpath(Workspace.member_xpath)
+      return Workspace.new self, :name => name.text if name
     end
 
     # @return [RGeoServer::Workspace] get_workspace('default')
@@ -222,7 +222,8 @@ module RGeoServer
     # @param [String] coveragestore
     # @return [RGeoServer::CoverageStore]
     def get_coverage_store workspace, coveragestore
-      get_workspace(workspace).coverage_stores.select {|k| k.name == coveragestore}
+      cs = CoverageStore.new self, :workspace => workspace, :name => coveragestore
+      return cs.new?? nil : cs
     end
 
     def get_coverage workspace, coverage_store, coverage
@@ -244,7 +245,10 @@ module RGeoServer
     # @param [String] wmsstore
     # @return [RGeoServer::WmsStore]
     def get_wms_store workspace, wmsstore
-      get_workspace(workspace).wms_stores.select {|k| k.name == wmsstore}
+      response = self.search({:workspaces => workspace, :name => wmsstore})
+      doc = Nokogiri::XML(response)
+      name = doc.at_xpath(WmsStore.member_xpath)
+      return WmsStore.new self, workspace, name.text if name
     end
 
     #= Configuration reloading
