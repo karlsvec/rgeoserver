@@ -61,8 +61,6 @@ module RGeoServer
     end
 
     def message
-      ap({ :CV_new => new?, :CV_keywords => @keywords, :CV_metadataLinks => @metadata_links})
-      
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.coverage {
           xml.name @name
@@ -100,8 +98,6 @@ module RGeoServer
           end
         }
       end
-      ap({ :message => builder.doc})
-      
       @message = builder.doc.to_xml 
     end
 

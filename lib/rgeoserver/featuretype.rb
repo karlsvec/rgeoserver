@@ -183,7 +183,6 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      # ap({:profile_xml_to_hash => doc})
       h = {
         "name" => doc.at_xpath('//name').text.strip,
         "title" => doc.at_xpath('//title/text()').to_s,
@@ -193,11 +192,6 @@ module RGeoServer
             'keyword' => kl.at_xpath('//keyword/text()').to_s
           }
         },
-        # "metadata" => doc.at_xpath('//metadata').collect { |m|
-        #   {
-        #     'map' => m.to_s # XXX: need proper k,v dump
-        #   }
-        # },
         "workspace" => @workspace.name,
         "data_store" => @data_store.name,
         "nativeName" => doc.at_xpath('//nativeName/text()').to_s,
@@ -234,7 +228,6 @@ module RGeoServer
           }
         }
       }.freeze
-      # ap({ :profile_xml_to_hash => h})
       h
     end
 
