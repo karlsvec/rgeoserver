@@ -133,19 +133,15 @@ To enter into an irb console with all classes loaded:
 
 == Logging
 
-For now we use {RestClient's}[https://github.com/archiloque/rest-client] base logger. It can be enabled by setting:
+To enable logging from {RestClient's}[https://github.com/archiloque/rest-client] base logger, add an entry in your `config.yml` for stdout/stderr or a file:
 
-  RestClient.log = '/tmp/restclient.log'
+  geoserver:
+    logfile: stderr
 
-or set an environment variable, for example:
+or
 
-  $ RESTCLIENT_LOG=stdout ruby ingest_layer.rb 
-  RestClient.get "http://localhost:8080/geoserver/rest/workspaces/cite.xml", "Accept"=>"application/xml", "Accept-Encoding"=>"gzip, deflate", "Content-Type"=>"application/xml"
-  # => 200 OK | application/xml 662 bytes
-  RestClient.get "http://localhost:8080/geoserver/rest/workspaces/cite/coveragestores/city_of_san_francisco_1859.xml", "Accept"=>"application/xml", "Accept-Encoding"=>"gzip, deflate", "Content-Type"=>"application/xml"
-  # => 404 NotFound | text/plain 73 bytes
-  RestClient.post "http://localhost:8080/geoserver/rest/workspaces/cite/coveragestores", "<?xml version=\"1.0\"?>\n<coverageStore>\n  <name>city_of_san_francisco_1859</name>\n  <workspace>\n    <name>cite</name>\n  </workspace>\n  <enabled>true</enabled>\n  <type>GeoTIFF</type>\n  <description>Map of San Francisco by the U.S. Coast Survey, with detail of the unsettled lands</description>\n  <url>file:///geo_data/rumsey/g1030000alpha.tif</url>\n</coverageStore>\n", "Accept"=>"application/xml", "Accept-Encoding"=>"gzip, deflate", "Content-Length"=>"363", "Content-Type"=>"application/xml"
-  # => 201 Created |  0 bytes
+  geoserver:
+    logfile: 'rgeoserver.log'
 
 
 == Related Resources

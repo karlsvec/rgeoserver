@@ -3,3 +3,4 @@ geoserver:
   user: "admin"
   password: "admin123"
   geowebcache_url: "http://localhost:8080/geoserver/gwc/rest"
+  logfile: "rgeoserver.log"
