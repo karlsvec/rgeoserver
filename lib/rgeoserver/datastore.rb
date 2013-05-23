@@ -23,8 +23,8 @@ module RGeoServer
       end
     end
 
-    OBJ_ATTRIBUTES = {:enabled => "enabled", :catalog => "catalog", :workspace => "workspace", :name => "name", :connection_parameters => "connection_parameters"}
-    OBJ_DEFAULT_ATTRIBUTES = {:enabled => 'true', :catalog => nil, :workspace => nil, :name => nil, :connection_parameters => {}}
+    OBJ_ATTRIBUTES = {:enabled => "enabled", :catalog => "catalog", :workspace => "workspace", :name => "name", :connection_parameters => "connection_parameters" }
+    OBJ_DEFAULT_ATTRIBUTES = {:enabled => 'true', :catalog => nil, :workspace => nil, :name => nil, :connection_parameters => {} }
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
@@ -63,6 +63,7 @@ module RGeoServer
         xml.dataStore {
           xml.name @name
           xml.enabled enabled
+          # xml.description @description
           xml.connectionParameters {  # this could be empty
             connection_parameters.each_pair { |k,v|
               xml.entry(:key => k) {
@@ -158,6 +159,7 @@ module RGeoServer
       doc = profile_xml_to_ng profile_xml
       h = {
         "name" => doc.at_xpath('//name').text.strip,
+        # "description" => doc.at_xpath('//description/text()').to_s,
         "enabled" => doc.at_xpath('//enabled/text()').to_s,
         "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |h, e| h.merge(e['key']=> e.text.to_s) }
       }

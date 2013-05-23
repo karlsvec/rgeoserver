@@ -58,7 +58,7 @@ module RGeoServer
     # - workspaces/_name_/datastores/_name_.xml
     # - workspaces/_name_/datastores/_name_/featuretype/_name_.xml
     def url_for base, options = {}
-      raise ArgumentError, "options must be Hash" unless options.is_a? Hash
+      raise GeoServerArgumentError, "options must be Hash" unless options.is_a? Hash
       if base.is_a? String
         $stderr.puts "WARNING: deprecated usage -- base should be Hash"
         base = { base.to_sym => nil } if base.is_a? String
@@ -67,12 +67,12 @@ module RGeoServer
       base = Hash[base.map {|k,v| [k.to_sym, v]}] unless base.keys.select {|k| not k.is_a? Symbol}.size == 0
       
       format = (options.delete(:format) if options.include?(:format)) || :xml
-      raise ArgumentError, "Unknown REST API format: '#{format}'" unless URI_FORMATS.include?(format)
+      raise GeoServerArgumentError, "Unknown REST API format: '#{format}'" unless URI_FORMATS.include?(format)
       
       new_base = base.collect {|k,v| v.nil?? "#{k}" : "#{k}/#{v}"}.join('/').to_s
       new_base = new_base.gsub(%r{/$}, '')
       
-      raise ArgumentError, "Invalid REST URI syntax: #{new_base}" unless URI_REGEX.each.select {|r| r.match(new_base)}.size > 0
+      raise GeoServerArgumentError, "Invalid REST URI syntax: #{new_base}" unless URI_REGEX.each.select {|r| r.match(new_base)}.size > 0
       
       new_base += ".#{format}"
       if not options.empty?

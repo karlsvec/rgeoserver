@@ -15,7 +15,7 @@ module RGeoServer
     # @option options [String] :password
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
-      raise ArgumentError.new("Catalog: Requires :url option") unless @config.include?(:url)
+      raise GeoServerArgumentError.new("Catalog: Requires :url option") unless @config.include?(:url)
       if @config[:logfile]
         RestClient.log = @config[:logfile]
       end
