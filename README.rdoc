@@ -155,7 +155,7 @@ or
 
 == Release History
 
-- <b>v0.6</b> - Expanded FeatureType metadata, and use RGEOSERVER_CONFIG for default options to RGeoServer::Catalog
+- <b>v0.6</b> - Resource keywords, YAML-based configuration, REST API validation, additional unit testing and cleanup
 - <b>v0.5</b> - Initial alpha release
 
 == TODO
@@ -170,7 +170,6 @@ or
 - Provide more examples:
   - Customize configuration.
   - Connect under SSL.
-  - Batch processing.
 - Migrate base HTTP client to {Faraday}[https://github.com/technoweenie/faraday]?
 - Curlify operations: To provide optional log/output of the curl command that would produce the same 
 result as the ResourceInfo#save method.

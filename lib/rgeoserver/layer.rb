@@ -105,7 +105,7 @@ module RGeoServer
       super({})
       _run_initialize_callbacks do
         @catalog = catalog
-        raise ArgumentError, "Layer requires :name option" unless options.include? :name
+        raise GeoServerArgumentError, "Layer requires :name option" unless options.include? :name
         @name = options[:name].strip
         
         raise NotImplementedError, ":default_style" if options.include? :default_style
@@ -120,7 +120,7 @@ module RGeoServer
       if r.is_a?(RGeoServer::Coverage) || r.is_a?(RGeoServer::FeatureType)
         @resource = r
       else
-        raise ArgumentError, 'Unknown resource type: #{r.class}'
+        raise GeoServerArgumentError, 'Unknown resource type: #{r.class}'
       end
     end
 
@@ -146,7 +146,7 @@ module RGeoServer
             
             return ft
           else
-            raise ArgumentError, 'Unknown resource type: #{data_type}'
+            raise GeoServerArgumentError, 'Unknown resource type: #{data_type}'
           end
         else
           nil

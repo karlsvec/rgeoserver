@@ -1,19 +1,36 @@
 
 module RGeoServer
-  # A feature type is a vector based spatial resource or data set that originates from a data store. In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store. In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with each feature type corresponding to a table in the database.
+  # A feature type is a vector based spatial resource or data set that originates from a data store.
+  # In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store.
+  # In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with
+  # each feature type corresponding to a table in the database.
   class FeatureType < ResourceInfo    
-    OBJ_ATTRIBUTES = {:catalog => "catalog", :name => "name", :workspace => "workspace", :data_store => "data_store", :enabled => "enabled", :metadata_links => "metadataLinks", :title => "title", :abstract => "abstract", :native_bounds => 'native_bounds', :latlon_bounds => "latlon_bounds", :projection_policy => 'projection_policy'}
-    OBJ_DEFAULT_ATTRIBUTES =
-      {
+    OBJ_ATTRIBUTES = {
+      :catalog => "catalog", 
+      :name => "name", 
+      :workspace => "workspace", 
+      :data_store => "data_store", 
+      :enabled => "enabled", 
+      :metadata => "metadata", 
+      :metadata_links => "metadataLinks", 
+      :title => "title", 
+      :abstract => "abstract",
+      :keywords => 'keywords',
+      :native_bounds => 'native_bounds', 
+      :latlon_bounds => "latlon_bounds", 
+      :projection_policy => 'projection_policy'
+    }
+    OBJ_DEFAULT_ATTRIBUTES = {
       :catalog => nil,
       :workspace => nil,
       :data_store => nil,
       :name => nil,
       :enabled => "false",
-      :metadata_links => [],
-      :data_links => [],
+      :metadata => {},
+      :metadata_links => {},
       :title => nil,
       :abstract => nil,
+      :keywords => [],
       :native_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
       :latlon_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
       :projection_policy => :force
@@ -49,45 +66,54 @@ module RGeoServer
     end
 
     def route
-      raise ArgumentError, "workspace not defined" unless @workspace
-      raise ArgumentError, "data_store not defined" unless @data_store
+      raise GeoServerArgumentError, "workspace not defined" unless @workspace
+      raise GeoServerArgumentError, "data_store not defined" unless @data_store
       @@route % [@workspace.name , @data_store.name]
     end
     
     def to_mimetype(type, default = 'text/xml')
-      if @@metadata_types.include?(type) 
-        @@metadata_types[type]
-      else
-        default
-      end
+      return @@metadata_types[type.upcase] if @@metadata_types.include?(type.upcase) 
+      default
     end
-
-    # <MetadataURL type="TC211">
-    # <Format>text/xml</Format>
-    # <OnlineResource xlink:type="simple" xlink:href="http://kurma-podd1.stanford.edu/geoserver/www/metadata/cs838pw3418.xml"/>
-    # </MetadataURL>
 
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
           xml.name @name if new?
-          xml.enabled @enabled if (enabled_changed? || new?)
-          xml.title title
-          xml.abstract abstract
+          xml.enabled @enabled if new? or enabled_changed?
+          xml.title title if new? or title_changed?
+          xml.abstract abstract if new? or abstract_changed?
           xml.keywords {
             @keywords.each do |k|
-              xml.string {
-                # United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
-                "#{k[:keyword]}" +
-                (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
-                (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
+              if k.is_a? Hash
+                # Example: United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
+                k = "#{k[:keyword]}" +
+                    (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
+                    (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
+              end              
+              xml.keyword k
+            end
+          } if @keywords and new? or keywords_changed?
+          
+          xml.metadata {
+            @metadata.each do |k,v|
+              xml.send(k.to_s, v.to_s)
+            end
+          } if @metadata and new? or metadata_changed?
+          
+          xml.metadataLinks {
+            @metadata_links.each do |m|
+              xml.metadataLink {
+                xml.type_ to_mimetype(m['metadataType'])
+                xml.metadataType m['metadataType']
+                xml.content m['content']
               }
             end
-          } if metadata_links_changed?
-
+          } if @metadata_links and new? or metadata_links_changed?
+          
           xml.store(:class => 'dataStore') {
             xml.name @data_store.name
-          } if new? || data_store_changed?
+          } if new? or data_store_changed?
 
           xml.nativeBoundingBox {
             xml.minx native_bounds['minx'] if native_bounds['minx']
@@ -117,34 +143,6 @@ module RGeoServer
                 xml.binding 'com.vividsolutions.jts.geom.Point'
               }
             }
-          else
-            xml.metadataLinks {
-              @metadata_links.each do |m|
-                xml.metadataLink {
-                  xml.type_ to_mimetype(m['metadataType'], m['type'])
-                  xml.metadataType m['metadataType']
-                  xml.content m['content']
-                }
-              end
-            } if metadata_links_changed?
-            
-            @metadata_links.each do |m|
-              xml.metadataURL {
-                xml.format m['format']
-                xml.onlineResource {
-                  xml.attribute {
-                    xml.xlink.type 'simple'
-                    xml.xlink.href m['url']
-                  }
-                } 
-              }
-              end
-          end
-          @data_links.each do |l|
-            xml.dataURL {
-              xml.format l['format']
-              xml.onlineResource l['onlineResource']
-            }
           end
         }
       end
@@ -155,8 +153,8 @@ module RGeoServer
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     def initialize catalog, options
-      raise ArgumentError, "FeatureType.new requires :data_store option" unless options.include?(:data_store)
-      raise ArgumentError, "FeatureType.new requires :name option" unless options.include?(:name)
+      raise GeoServerArgumentError, "FeatureType.new requires :data_store option" unless options.include?(:data_store)
+      raise GeoServerArgumentError, "FeatureType.new requires :name option" unless options.include?(:name)
       
       _run_initialize_callbacks do
         @catalog = catalog
@@ -166,7 +164,7 @@ module RGeoServer
         elsif workspace.instance_of? Workspace
           @workspace = workspace
         else
-          raise ArgumentError, "Not a valid workspace: #{workspace}"
+          raise GeoServerArgumentError, "Not a valid workspace: #{workspace}"
         end
         
         data_store = options[:data_store]
@@ -175,7 +173,7 @@ module RGeoServer
         elsif data_store.instance_of? DataStore
           @data_store = data_store
         else
-          raise ArgumentError, "Not a valid datastore: #{data_store}"
+          raise GeoServerArgumentError, "Not a valid datastore: #{data_store}"
         end
 
         @name = options[:name].strip
@@ -185,10 +183,21 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
+      # ap({:profile_xml_to_hash => doc})
       h = {
         "name" => doc.at_xpath('//name').text.strip,
         "title" => doc.at_xpath('//title/text()').to_s,
         "abstract" => doc.at_xpath('//abstract/text()').to_s,
+        "keywords" => doc.at_xpath('//keywordList').collect { |kl|
+          {
+            'keyword' => kl.at_xpath('//keyword/text()').to_s
+          }
+        },
+        # "metadata" => doc.at_xpath('//metadata').collect { |m|
+        #   {
+        #     'map' => m.to_s # XXX: need proper k,v dump
+        #   }
+        # },
         "workspace" => @workspace.name,
         "data_store" => @data_store.name,
         "nativeName" => doc.at_xpath('//nativeName/text()').to_s,
@@ -225,6 +234,7 @@ module RGeoServer
           }
         }
       }.freeze
+      # ap({ :profile_xml_to_hash => h})
       h
     end
 
@@ -245,7 +255,7 @@ module RGeoServer
       when 'REPROJECT_TO_DECLARED' then :reproject
       when 'NONE' then :keep
       else
-        raise ArgumentError, "There is not correspondent to '%s'" % value
+        raise GeoServerArgumentError, "There is not correspondent to '%s'" % value
       end
     end
 
@@ -255,7 +265,7 @@ module RGeoServer
       when :reproject then 'REPROJECT_TO_DECLARED'
       when :keep then 'NONE'
       else
-        raise ArgumentError, "There is not correspondent to '%s'" % value
+        raise GeoServerArgumentError, "There is not correspondent to '%s'" % value
       end
     end
   end

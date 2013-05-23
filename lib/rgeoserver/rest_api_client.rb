@@ -1,8 +1,6 @@
-
 require 'logger'
 $logger = Logger.new(STDOUT)
-$logger.level = Logger::WARN
-
+$logger.level = Logger::DEBUG
 
 module RGeoServer
   module RestApiClient
@@ -23,7 +21,11 @@ module RGeoServer
 
     def gwc_client config = {}
       c = self.config.merge(config)
-      c[:url] = c[:geowebcache_url]
+      if c[:geowebcache_url] and c[:geowebcache_url] != 'builtin'
+        c[:url] = c[:geowebcache_url]
+      else
+        c[:url] = c[:url].gsub(%r{/rest$}, '/gwc/rest') # switch to built-in GeoServer GWC
+      end
       @gwc_client ||= rest_client(c)
     end
 
@@ -79,7 +81,9 @@ module RGeoServer
       h = options.delete(:headers) || headers(:xml)
       request = client[url_for(what, options)]
       request.options[:headers] = h
+      $logger.debug "Adding: \n #{message}"
       begin 
+        ap({:add_request => request, :add_message => Nokogiri::XML(message)})
         return request.send method, message
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -99,7 +103,8 @@ module RGeoServer
       request = client[url_for(what, options)]
       request.options[:headers] = h
       $logger.debug "Modifying: \n #{message}"
-      begin 
+      begin
+        ap({:modify_request => request, :modify_message => Nokogiri::XML(message)})
         return request.send method, message
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -114,7 +119,9 @@ module RGeoServer
     # @param [Hash] options
     def purge what, options
       request = client[url_for(what, options)]
+      $logger.debug "Purge: \n #{request}"
       begin
+        ap({:purge_request => request})
         return request.delete
       rescue RestClient::InternalServerError => e 
         $logger.error e.response
