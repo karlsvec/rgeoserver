@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.required_ruby_version = ">=1.9.3"
   s.authors = ["Renzo Sanchez-Silva", "Bess Sadler", "Darren Hardy"]
-  s.email = ["drh@stanford.edu"]
+  s.email = ["renzo.sanchez.silva@gmail.com", "drh@stanford.edu"]
   s.summary = %q{GeoServer REST API Ruby library }
   s.description = %q{GeoServer REST API Ruby library : Requires GeoServer 2.1.3+}
   s.homepage = "http://github.com/rnz0/rgeoserver"
