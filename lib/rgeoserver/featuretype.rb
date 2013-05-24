@@ -76,6 +76,12 @@ module RGeoServer
       default
     end
 
+    # Example: 
+    # ft.keywords = [{:keyword => "United States", 
+    #                 :language => "en", 
+    #                 :vocabulary=>"ISOTC211/19115:place"}]
+    # yields:
+    #   United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
@@ -86,11 +92,11 @@ module RGeoServer
           xml.keywords {
             @keywords.each do |k|
               if k.is_a? Hash
-                # Example: United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
+                k = k.inject({}){|h,(k,v)| h[k.to_sym] = v; h}
                 k = "#{k[:keyword]}" +
                     (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
                     (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
-              end              
+              end
               xml.keyword k
             end
           } if @keywords and new? or keywords_changed?
