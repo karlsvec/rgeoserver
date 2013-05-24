@@ -68,24 +68,6 @@ module RGeoServer
           if new?
             xml.nativeName @name
             xml.abstract @abtract if abstract_changed?
-            xml.keywords {
-              @keywords.each do |k|
-                if k.is_a? Hash
-                  # Example: United States\@language=en\;\@vocabulary=ISOTC211/19115:place\;
-                  k = "#{k[:keyword]}" +
-                      (("\\@language=#{k[:language]}\\;" if k[:language])||"") +
-                      (("\\@vocabulary=#{k[:vocabulary]}\\;" if k[:vocabulary])||"")
-                end              
-                xml.keyword k
-              end
-            } if @keywords
-
-            xml.metadata {
-              @metadata.each do |k,v|
-                xml.send(k.to_s, v.to_s)
-              end
-            } if @metadata
-
             xml.metadataLinks {
               @metadata_links.each do |m|
                 xml.metadataLink {
@@ -96,6 +78,12 @@ module RGeoServer
               end
             } if @metadata_links
           end
+          xml.keywords {
+            @keywords.each do |k|
+              xml.keyword RGeoServer::Metadata::to_keyword(k)
+            end
+          } if @keywords and new? or keywords_changed?
+          
         }
       end
       @message = builder.doc.to_xml 

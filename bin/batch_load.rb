@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # -*- encoding : utf-8 -*-
 #
-# RGeoServer Batch load layers (batch_load.rb)
+# RGeoServer Batch load layers (batch_demo.rb)
 # Usage: #{File.basename(__FILE__)} [input.yml]
 
 require 'rubygems'
@@ -10,7 +10,7 @@ require 'rgeoserver'
 require 'awesome_print'
 require 'optparse'
 
-#=  Input data. 
+#=  Input data. *See DATA section at end of file*
 # The input file is in YAML syntax with each record is a Hash with keys:
 # - layername
 # - filename
@@ -20,13 +20,10 @@ require 'optparse'
 # - description
 # - keywords
 # - metadata_links
-# - metadata
-
 
 #= Configuration constants
 WORKSPACE_NAME = 'rgeoserver'
 NAMESPACE = 'urn:rgeoserver'
-DATADIR = 'file:///data'
 
 # GeoWebCache configuration
 SEED = true
@@ -42,7 +39,7 @@ SEED_OPTIONS = {
 
 def main layers, flags = {}
   return unless layers
-  datadir = flags[:datadir] || DATADIR
+  datadir = flags[:datadir]
   # Connect to the GeoServer catalog
   cat = RGeoServer::Catalog.new
 
@@ -76,12 +73,12 @@ def main layers, flags = {}
       cv.title = v['title'] 
       cv.keywords = v['keywords']
       cv.metadata_links = v['metadata_links']
-      # cv.metadata = v['metadata']
       cv.save
 
     elsif format == 'Shapefile'
       # Create data stores for shapefiles
       ds = RGeoServer::DataStore.new cat, :workspace => ws, :name => layername
+      ds.description = v['description']
       ds.connection_parameters = {
         "url" => File.join(datadir, v['filename']),
         "namespace" => NAMESPACE
@@ -94,7 +91,6 @@ def main layers, flags = {}
       ft.abstract = v['description']
       ft.keywords = v['keywords']
       ft.metadata_links = v['metadata_links']
-      # ft.metadata = v['metadata']
       ft.save
     end
 
@@ -111,7 +107,8 @@ end
 begin
   flags = {
     :delete => true,
-    :verbose => false
+    :verbose => false,
+    :datadir => 'file:///data'
   }
   
   OptionParser.new do |opts|

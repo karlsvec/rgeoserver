@@ -21,6 +21,7 @@ module RGeoServer
 
   autoload :BoundingBox, "rgeoserver/utils/boundingbox"
   autoload :ShapefileInfo, "rgeoserver/utils/shapefile_info"
+  autoload :Metadata, "rgeoserver/utils/metadata"
 
   require 'restclient'
   require 'nokogiri'

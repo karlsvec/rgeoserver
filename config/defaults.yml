@@ -7,4 +7,4 @@ geoserver:
   # Set to your GWC server, or "builtin" for the one bundled with GeoServer
   geowebcache_url: "builtin"
   # Set to false to disable or stdout/stderr or 'filename.out'
-  logfile: stdout
+  logfile: 'rgeoserver.log' #stdout
