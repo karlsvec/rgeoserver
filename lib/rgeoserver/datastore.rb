@@ -23,8 +23,25 @@ module RGeoServer
       end
     end
 
-    OBJ_ATTRIBUTES = {:enabled => "enabled", :catalog => "catalog", :workspace => "workspace", :name => "name", :connection_parameters => "connection_parameters", :description => "description" }
-    OBJ_DEFAULT_ATTRIBUTES = {:enabled => 'true', :catalog => nil, :workspace => nil, :name => nil, :connection_parameters => {}, :description => nil }
+    OBJ_ATTRIBUTES = {
+      :catalog => 'catalog', 
+      :workspace => 'workspace', 
+      :connection_parameters => "connection_parameters",
+      :name => 'name', 
+      :data_type => 'type', 
+      :enabled => 'enabled', 
+      :description => 'description'
+    }  
+    OBJ_DEFAULT_ATTRIBUTES = {
+      :catalog => nil, 
+      :workspace => nil, 
+      :connection_parameters => {}, 
+      :name => nil, 
+      :data_type => 'Shapefile',
+      :enabled => 'true', 
+      :description=>nil
+    }  
+    
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
@@ -62,14 +79,15 @@ module RGeoServer
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.dataStore {
           xml.name @name
-          xml.enabled enabled
+          xml.enabled @enabled
           xml.description @description
+          xml.type_ @data_type if (data_type_changed? || new?)
           xml.connectionParameters {  # this could be empty
-            connection_parameters.each_pair { |k,v|
+            @connection_parameters.each_pair { |k,v|
               xml.entry(:key => k) {
                 xml.text v
               }
-            } unless connection_parameters.nil? || connection_parameters.empty?
+            } unless @connection_parameters.nil? || @connection_parameters.empty?
           }
         }
       end
@@ -97,8 +115,8 @@ module RGeoServer
       end
     end
 
-    def featuretypes &block
-      self.class.list FeatureType, @catalog, profile['featureTypes'], {:workspace => @workspace, :data_store => self}, check_remote = true, &block
+    def featuretypes
+      yield self.class.list FeatureType, @catalog, profile['featureTypes'], {:workspace => @workspace, :data_store => self}, true
     end
 
     # @param [String] file_path
@@ -159,18 +177,22 @@ module RGeoServer
       doc = profile_xml_to_ng profile_xml
       h = {
         "name" => doc.at_xpath('//name').text.strip,
-        "abstract" => doc.at_xpath('//abstract/text()').to_s,
+        "description" => doc.at_xpath('//description/text()').to_s,
         "enabled" => doc.at_xpath('//enabled/text()').to_s,
-        "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |h, e| h.merge(e['key']=> e.text.to_s) }
+        'type' => doc.at_xpath('//type/text()').to_s,
+        "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
       }
-      doc.xpath('//featureTypes/atom:link/@href', "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each{ |l|
+      # XXX: assume that we know the workspace for <workspace>...</workspace>
+      doc.xpath('//featureTypes/atom:link[@rel="alternate"]/@href', 
+                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
         h["featureTypes"] = begin
                               response = @catalog.do_url l.text
+                              # lazy loading: only loads featuretype names
                               Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
                             rescue RestClient::ResourceNotFound
                               []
                             end.freeze
-      }
+      end
       h
     end
   end
