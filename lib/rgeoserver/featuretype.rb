@@ -80,8 +80,8 @@ module RGeoServer
     end
     
     def to_mimetype(type, default = 'text/xml')
-      k = type.strip.upcase
-      return METADATA_TYPES[k] if METADATA_TYPES.has_key?(k)
+      k = type.to_s.strip.upcase
+      return METADATA_TYPES[k] if METADATA_TYPES.include? k
       default
     end
 
@@ -99,7 +99,9 @@ module RGeoServer
           } if @keywords and new? or keywords_changed?
 
           xml.metadataLinks {
+
             @metadata_links.each do |m|
+              raise ArgumentError, "Malformed metadata_links" unless m.is_a? Hash
               xml.metadataLink {
                 xml.type_ to_mimetype(m['metadataType'])
                 xml.metadataType m['metadataType']
@@ -143,6 +145,7 @@ module RGeoServer
           end
         }
       end
+      ap builder.doc
       @message = builder.doc.to_xml
     end
 
@@ -180,7 +183,7 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      ap doc
+      ap doc if $DEBUG
       h = {
         "name" => doc.at_xpath('//name').text.strip,
         "title" => doc.at_xpath('//title/text()').to_s,
@@ -226,18 +229,19 @@ module RGeoServer
           }
         }
       }.freeze
+      ap h if $DEBUG
       h
     end
 
     def valid_native_bounds?
       bbox = RGeoServer::BoundingBox.new(native_bounds)
-      ap bbox
+      ap bbox if $DEBUG
       bbox.valid? and not native_bounds['crs'].compact.empty?
     end
 
     def valid_latlon_bounds?
       bbox = RGeoServer::BoundingBox.new(latlon_bounds)
-      ap bbox
+      ap bbox if $DEBUG
       bbox.valid? and not latlon_bounds['crs'].compact.empty?
     end
 
