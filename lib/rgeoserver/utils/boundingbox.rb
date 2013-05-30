@@ -13,6 +13,16 @@ module RGeoServer
     def self.epsilon= value
       @@epsilon = value
     end
+    
+    # @param [Array] a in [minx, miny, maxx, maxy]
+    def self.from_a a
+      self.class.new {
+          'minx' => a[0].to_f,
+          'miny' => a[1].to_f,
+          'maxx' => a[2].to_f,
+          'maxy' => a[3].to_f
+        }
+    end
 
     def initialize options = {}
       reset
