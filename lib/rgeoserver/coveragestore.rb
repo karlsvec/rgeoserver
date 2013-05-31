@@ -3,8 +3,24 @@ module RGeoServer
   # A coverage store is a source of spatial data that is raster based.
   class CoverageStore < ResourceInfo
 
-    OBJ_ATTRIBUTES = {:catalog => 'catalog', :workspace => 'workspace', :url => 'url', :data_type => 'type', :name => 'name', :enabled => 'enabled', :description => 'description'}  
-    OBJ_DEFAULT_ATTRIBUTES = {:catalog => nil, :workspace => nil, :url => '', :data_type => 'GeoTIFF', :name => nil, :enabled => 'true', :description=>nil}  
+    OBJ_ATTRIBUTES = {
+      :catalog => 'catalog', 
+      :workspace => 'workspace', 
+      :url => 'url', 
+      :data_type => 'type', 
+      :name => 'name', 
+      :enabled => 'enabled', 
+      :description => 'description'
+    }  
+    OBJ_DEFAULT_ATTRIBUTES = {
+      :catalog => nil, 
+      :workspace => nil, 
+      :url => '', 
+      :data_type => 'GeoTIFF', 
+      :name => nil, 
+      :enabled => 'true', 
+      :description=>nil
+    }  
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
@@ -72,21 +88,41 @@ module RGeoServer
       end        
     end
 
-    def coverages &block
-      self.class.list Coverage, @catalog, profile['coverages'], {:workspace => @workspace, :coverage_store => self}, check_remote = true, &block
+    def coverages
+      yield self.class.list Coverage, @catalog, profile['coverages'], {:workspace => @workspace, :coverage_store => self}, true
     end
 
+    # <coverageStore>
+    # <name>antietam_1867</name>
+    # <description>
+    # Map shows the U.S. Civil War battle of Antietam. It indicates fortifications, roads, railroads, houses, names of residents, fences, drainage, vegetation, and relief by hachures.
+    # </description>
+    # <type>GeoTIFF</type>
+    # <enabled>true</enabled>
+    # <workspace>
+    # <name>druid</name>
+    # <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="http://localhost:8080/geoserver/rest/workspaces/druid.xml" type="application/xml"/>
+    # </workspace>
+    # <__default>false</__default>
+    # <url>
+    # file:///var/geoserver/current/staging/rumsey/g3881015alpha.tif
+    # </url>
+    # <coverages>
+    # <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="http://localhost:8080/geoserver/rest/workspaces/druid/coveragestores/antietam_1867/coverages.xml" type="application/xml"/>
+    # </coverages>
+    # </coverageStore>
     def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml 
+      doc = profile_xml_to_ng profile_xml
       h = {
         'name' => doc.at_xpath('//name').text.strip, 
-        'workspace' => @workspace.name, 
+        'description' => doc.at_xpath('//description/text()').to_s,
         'type' => doc.at_xpath('//type/text()').to_s,
         'enabled' => doc.at_xpath('//enabled/text()').to_s,
-        'description' => doc.at_xpath('//description/text()').to_s,
-        'url' => doc.at_xpath('//url/text()').to_s
+        'url' => doc.at_xpath('//url/text()').to_s,
+        'workspace' => @workspace.name # Assume correct workspace
       }
-      doc.xpath('//coverages/atom:link/@href', "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each{ |l| 
+      doc.xpath('//coverages/atom:link[@rel="alternate"]/@href', 
+                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each{ |l| 
         h['coverages'] = begin
           response = @catalog.do_url l.text
           Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }

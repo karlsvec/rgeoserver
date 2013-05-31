@@ -37,14 +37,14 @@ module RGeoServer
       # @param [Hash] options
       # @param [bool] check_remote if already exists in catalog and cache it
       # @yield [RGeoServer::ResourceInfo]
-      def self.list klass, catalog, names, options, check_remote = false, &block
+      def self.list klass, catalog, names, options, check_remote = false
         if names.nil?
           return []
         elsif block_given?
           (names.is_a?(Array)? names : [names]).each do |name|
             obj = klass.new catalog, options.merge(:name => name)
             obj.new? if check_remote
-            block.call(obj)
+            yield(obj)
           end
         else
           to_enum(:list, klass, catalog, names, options).to_a
@@ -165,7 +165,7 @@ module RGeoServer
       end
 
       def profile_xml_to_hash profile_xml
-        raise NotImplementedError
+        raise NotImplementedError, 'profile_xml_to_hash is abstract method'
       end
 
     end

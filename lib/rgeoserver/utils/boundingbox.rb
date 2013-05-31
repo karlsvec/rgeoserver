@@ -14,8 +14,12 @@ module RGeoServer
       @@epsilon = value
     end
 
-    def initialize
+    def initialize options = {}
       reset
+      if ['minx', 'miny', 'maxx', 'maxy'].all? {|k| options.include?(k)}
+        add options['minx'].to_f, options['miny'].to_f
+        add options['maxx'].to_f, options['maxx'].to_f
+      end
     end
 
     def reset
@@ -58,6 +62,11 @@ module RGeoServer
     def constrict rate = @@epsilon
       expand -rate
     end
+    
+    # @return true if bounding box has non-zero area
+    def valid?
+      @maxx > @minx and @maxy > @miny
+    end
 
     def to_geometry
       factory = RGeo::Cartesian::Factory.new
@@ -71,6 +80,15 @@ module RGeoServer
 
       line_string = factory.line_string [point_min, point_max]
       line_string.envelope
+    end
+    
+    def to_h
+      {
+        :minx => @minx,
+        :miny => @miny,
+        :maxx => @maxx,
+        :maxy => @maxy
+      }
     end
 
     def to_a

@@ -9,7 +9,7 @@ module RGeoServer
 
     attr_reader :config
 
-    # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] loaded from config/$RGEOSERVER_CONFIG or config/defaults.yml
+    # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] loaded from $RGEOSERVER_CONFIG or config/defaults.yml
     # @option options [String] :url
     # @option options [String] :user
     # @option options [String] :password
@@ -39,19 +39,19 @@ module RGeoServer
     # @param [Hash] options
     # @param [bool] check_remote if already exists in catalog and cache it
     # @yield [RGeoServer::ResourceInfo]
-    def list klass, names, options, check_remote = false,  &block
-      ResourceInfo.list klass, self, names, options, check_remote, &block
+    def list klass, names, options, check_remote = false
+      yield ResourceInfo.list klass, self, names, options, check_remote
     end
 
     #= Workspaces
 
     # List of available workspaces
     # @return [Array<RGeoServer::Workspace>]
-    def get_workspaces &block
+    def get_workspaces
       response = self.search :workspaces => nil
       doc = Nokogiri::XML(response)
       workspaces = doc.xpath(Workspace.root_xpath).collect{|w| w.text.to_s }
-      list Workspace, workspaces, {}, &block
+      yield list Workspace, workspaces, {}
     end
 
     # @param ws [String] workspace name
@@ -89,13 +89,14 @@ module RGeoServer
 
     # List of available layers
     # @return [Array<RGeoServer::Layer>]
-    def get_layers options = {}, &block
+    def get_layers options = {}
       response = self.search :layers => nil
       doc = Nokogiri::XML(response)
       workspace_name = Workspace === options[:workspace] ? options[:workspace].name : options[:workspace]
       layer_nodes = doc.xpath(Layer.root_xpath).collect{|l| l.text.to_s }
-      layers = list(Layer, layer_nodes, {}, &block)
+      layers = list Layer, layer_nodes, {}
       layers = layers.find_all { |layer| layer.workspace.name == workspace_name } if options[:workspace]
+      layers.each {|l| yield l}
       layers
     end
 
@@ -112,7 +113,7 @@ module RGeoServer
 
     # List of available layer groups
     # @return [Array<RGeoServer::LayerGroup>]
-    def get_layergroups options = {}, &block
+    def get_layergroups options = {}
       response = unless options[:workspace]
                    self.search :layergroups => nil
                  else
@@ -120,7 +121,7 @@ module RGeoServer
                  end
       doc = Nokogiri::XML(response)
       layer_groups = doc.xpath(LayerGroup.root_xpath).collect{|l| l.text.to_s }.map(&:strip)
-      list LayerGroup, layer_groups, {workspace: options[:workspace]}, &block
+      yield list LayerGroup, layer_groups, {workspace: options[:workspace]}
     end
 
     # @param [String] layer group name
@@ -136,11 +137,11 @@ module RGeoServer
 
     # List of available styles
     # @return [Array<RGeoServer::Style>]
-    def get_styles &block
+    def get_styles
       response = self.search :styles => nil
       doc = Nokogiri::XML(response)
       styles = doc.xpath(Style.root_xpath).collect{|l| l.text.to_s }
-      list Style, styles, {}, &block
+      yield list Style, styles, {}
     end
 
     # @param [String] style name

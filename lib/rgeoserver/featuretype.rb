@@ -14,7 +14,7 @@ module RGeoServer
       :metadata => "metadata", 
       :metadata_links => "metadataLinks", 
       :title => "title", 
-      :abstract => "abstract",
+      :description => "description",
       :keywords => 'keywords',
       :native_bounds => 'native_bounds', 
       :latlon_bounds => "latlon_bounds", 
@@ -29,11 +29,11 @@ module RGeoServer
       :metadata => {},
       :metadata_links => {},
       :title => nil,
-      :abstract => nil,
+      :description => nil,
       :keywords => [],
       :native_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
       :latlon_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
-      :projection_policy => :force
+      :projection_policy => :keep
     }
 
     define_attribute_methods OBJ_ATTRIBUTES.keys
@@ -44,10 +44,18 @@ module RGeoServer
     @@resource_name = "featureType"
 
     # see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
-    @@metadata_types = {
+    METADATA_TYPES = {
       'ISO19139' => 'application/vnd.iso.19139+xml',
       'TC211' => 'application/vnd.iso.19139+xml'
     }
+    
+    # see https://github.com/geoserver/geoserver/blob/master/src/main/src/main/java/org/geoserver/catalog/ProjectionPolicy.java
+    PROJECTION_POLICIES = {
+      :force => 'FORCE_DECLARED',
+      :reproject => 'REPROJECT_TO_DECLARED',
+      :keep => 'NONE'
+    }
+    
 
     def self.root
       @@root
@@ -72,7 +80,8 @@ module RGeoServer
     end
     
     def to_mimetype(type, default = 'text/xml')
-      return @@metadata_types[type.upcase] if @@metadata_types.include?(type.upcase) 
+      k = type.strip.upcase
+      return METADATA_TYPES[k] if METADATA_TYPES.has_key?(k)
       default
     end
 
@@ -81,8 +90,8 @@ module RGeoServer
         xml.featureType {
           xml.name @name if new?
           xml.enabled @enabled if new? or enabled_changed?
-          xml.title title if new? or title_changed?
-          xml.abstract abstract if new? or abstract_changed?
+          xml.title @title if new? or title_changed?
+          xml.description @description if new? or description_changed?
           xml.keywords {
             @keywords.each do |k|
               xml.keyword RGeoServer::Metadata::to_keyword(k)
@@ -171,13 +180,14 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
+      ap doc
       h = {
         "name" => doc.at_xpath('//name').text.strip,
         "title" => doc.at_xpath('//title/text()').to_s,
-        "abstract" => doc.at_xpath('//abstract/text()').to_s,
-        "keywords" => doc.at_xpath('//keywordList').collect { |kl|
+        "description" => doc.at_xpath('//description/text()').to_s,
+        "keywords" => doc.at_xpath('//keywords').collect { |kl|
           {
-            'keyword' => kl.at_xpath('//keyword/text()').to_s
+            'keyword' => kl.at_xpath('//string/text()').to_s
           }
         },
         "workspace" => @workspace.name,
@@ -220,33 +230,35 @@ module RGeoServer
     end
 
     def valid_native_bounds?
-      native_bounds &&
-        ![native_bounds['minx'], native_bounds['miny'], native_bounds['maxx'], native_bounds['maxy'], native_bounds['crs']].compact.empty?
+      bbox = RGeoServer::BoundingBox.new(native_bounds)
+      ap bbox
+      bbox.valid? and not native_bounds['crs'].compact.empty?
     end
 
     def valid_latlon_bounds?
-      latlon_bounds &&
-        ![latlon_bounds['minx'], latlon_bounds['miny'], latlon_bounds['maxx'], latlon_bounds['maxy'], latlon_bounds['crs']].compact.empty?
+      bbox = RGeoServer::BoundingBox.new(latlon_bounds)
+      ap bbox
+      bbox.valid? and not latlon_bounds['crs'].compact.empty?
     end
 
     private
+    
     def get_projection_policy_sym value
-      case value.upcase
-      when 'FORCE_DECLARED' then :force
-      when 'REPROJECT_TO_DECLARED' then :reproject
-      when 'NONE' then :keep
+      v = value.strip.upcase
+      if PROJECTION_POLICIES.has_value? v
+        PROJECTION_POLICIES.invert[v]
       else
-        raise GeoServerArgumentError, "There is not correspondent to '%s'" % value
+        raise GeoServerArgumentError, "Invalid PROJECTION_POLICY: #{v}"
       end
     end
 
     def get_projection_policy_message value
-      case value
-      when :force then 'FORCE_DECLARED'
-      when :reproject then 'REPROJECT_TO_DECLARED'
-      when :keep then 'NONE'
+      k = value
+      k = value.strip.to_sym if not value.is_a? Symbol
+      if PROJECTION_POLICIES.has_key? k
+        PROJECTION_POLICIES[k]
       else
-        raise GeoServerArgumentError, "There is not correspondent to '%s'" % value
+        raise GeoServerArgumentError, "Invalid PROJECTION_POLICY: #{k}"
       end
     end
   end

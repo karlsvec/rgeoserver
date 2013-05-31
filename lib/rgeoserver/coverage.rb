@@ -7,6 +7,7 @@ module RGeoServer
       :catalog => "catalog", 
       :workspace => "workspace", 
       :coverage_store => "coverage_store", 
+      :enabled => "enabled",
       :name => "name", 
       :title => "title", 
       :abstract => "abstract", 
@@ -18,6 +19,7 @@ module RGeoServer
       :catalog => nil, 
       :workspace => nil, 
       :coverage_store => nil, 
+      :enabled => "true",
       :name => nil, 
       :title => nil, 
       :abstract => nil,  
@@ -65,6 +67,7 @@ module RGeoServer
         xml.coverage {
           xml.name @name
           xml.title @title 
+          xml.enabled @enabled if enabled_changed? or new?
           if new?
             xml.nativeName @name
             xml.abstract @abtract if abstract_changed?
@@ -115,9 +118,10 @@ module RGeoServer
         @name = options[:name]
         @enabled = options[:enabled] || true
         @route = route
-      end        
+      end
     end
 
+    # @return [Hash] extraction from GeoServer XML for this coverage
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
       h = {
@@ -144,9 +148,9 @@ module RGeoServer
         },
         "abstract" => doc.at_xpath('//abstract/text()').to_s, 
         "supportedFormats" => doc.xpath('//supportedFormats/string').collect{ |t| t.to_s },
-        "keywords" => doc.at_xpath('//keywordList').collect { |kl|
+        "keywords" => doc.at_xpath('//keywords').collect { |kl|
           {
-            'keyword' => kl.at_xpath('//keyword/text()').to_s
+            'keyword' => kl.at_xpath('//string/text()').to_s
           }
         },
         "metadataLinks" => doc.xpath('//metadataLinks/metadataLink').collect{ |m|
@@ -157,10 +161,8 @@ module RGeoServer
           }
         },
       }.freeze
-      ap({ :profile_xml_to_hash => h})
       h  
     end
-
 
   end
 end 
