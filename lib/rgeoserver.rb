@@ -1,8 +1,14 @@
 require 'active_model'
 require 'yaml'
 require 'confstruct'
+require 'restclient'
+require 'nokogiri'
+require 'time'
 
+# RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface.
 module RGeoServer
+  require 'rgeoserver/version'
+  
   autoload :Config, "rgeoserver/config"
   autoload :Catalog, "rgeoserver/catalog"
   autoload :RestApiClient, "rgeoserver/rest_api_client"
@@ -23,27 +29,10 @@ module RGeoServer
   autoload :ShapefileInfo, "rgeoserver/utils/shapefile_info"
   autoload :Metadata, "rgeoserver/utils/metadata"
 
-  require 'restclient'
-  require 'nokogiri'
-  require 'time'
-  require 'rgeoserver/version'
-
-  def self.connect *args
-    Catalog.new *args
-  end
-
+  # @return the default GeoServer Catalog instance
   def self.catalog
-    @catalog ||= self.connect(self.default_config.geoserver)
+    @@catalog ||= Catalog.new RGeoServer::config[:geoserver]
   end
-
-  def self.catalog= catalog
-    @catalog = catalog
-  end
-
-  def self.default_config *args, &block
-    Config.configure *args, &block
-  end
-
 
   class RGeoServerError < StandardError
   end

@@ -10,24 +10,26 @@ module RGeoServer
     attr_reader :config
 
     # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] loaded from $RGEOSERVER_CONFIG or config/defaults.yml
-    # @option options [String] :url
-    # @option options [String] :user
-    # @option options [String] :password
+    # @param [String] options :url
+    # @param [String] options :user
+    # @param [String] options :password
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
-      raise GeoServerArgumentError.new("Catalog: Requires :url option") unless @config.include?(:url)
-      if @config[:logfile]
-        RestClient.log = @config[:logfile]
+      unless config.include?(:url)
+        raise ArgumentError.new("Catalog: Requires :url option: #{config}") 
       end
+      RestClient.log = config[:logfile] || nil
     end
 
     def to_s
-      "Catalog: #{@config[:url]}"
+      "Catalog: #{config[:url]}"
     end
 
     def headers format = :xml
-      sym = :xml || format.to_sym
-      {:accept => sym, :content_type=> sym}
+      { 
+        :accept => format.to_sym, 
+        :content_type => format.to_sym
+      }
     end
 
     #== Resources
@@ -39,8 +41,13 @@ module RGeoServer
     # @param [Hash] options
     # @param [bool] check_remote if already exists in catalog and cache it
     # @yield [RGeoServer::ResourceInfo]
-    def list klass, names, options, check_remote = false
-      yield ResourceInfo.list klass, self, names, options, check_remote
+    def list klass, names, options = {}, check_remote = false
+      unless names.is_a? Array and not names.empty?
+        raise ArgumentError, "Missing names #{names}" 
+      end
+      a = ResourceInfo.list klass, self, names, options, check_remote
+      a.each {|x| yield x} if block_given?
+      a
     end
 
     #= Workspaces
@@ -48,20 +55,18 @@ module RGeoServer
     # List of available workspaces
     # @return [Array<RGeoServer::Workspace>]
     def get_workspaces
-      response = self.search :workspaces => nil
-      doc = Nokogiri::XML(response)
-      workspaces = doc.xpath(Workspace.root_xpath).collect{|w| w.text.to_s }
-      yield list Workspace, workspaces, {}
+      doc = Nokogiri::XML(search :workspaces => nil)
+      workspaces = doc.xpath("#{Workspace.root_xpath}/name/text()").collect {|w| w.to_s }
+      list Workspace.class, workspaces
     end
 
     # @param ws [String] workspace name
     # @return [RGeoServer::Workspace]
     def get_workspace ws
-      response = self.search :workspaces => ws
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath(Workspace.member_xpath)
-      return Workspace.new self, :name => name.text if name
+      doc = Nokogiri::XML(search :workspaces => ws)
+      Workspace.new self, :name => parse_name(doc, Workspace.class)
     end
+    
 
     # @return [RGeoServer::Workspace] get_workspace('default')
     def get_default_workspace
@@ -89,24 +94,31 @@ module RGeoServer
 
     # List of available layers
     # @return [Array<RGeoServer::Layer>]
+    # @yield [RGeoServer::Layer]
     def get_layers options = {}
-      response = self.search :layers => nil
-      doc = Nokogiri::XML(response)
-      workspace_name = Workspace === options[:workspace] ? options[:workspace].name : options[:workspace]
+      doc = Nokogiri::XML(search :layers => nil)
       layer_nodes = doc.xpath(Layer.root_xpath).collect{|l| l.text.to_s }
-      layers = list Layer, layer_nodes, {}
-      layers = layers.find_all { |layer| layer.workspace.name == workspace_name } if options[:workspace]
-      layers.each {|l| yield l}
-      layers
+      layers = list Layer.class, layer_nodes
+
+      # filter by workspace
+      if options[:workspace]
+        ws = options[:workspace]
+        ws = ws.name if ws.is_a? Workspace.class
+        layers.reject! { |l| l.workspace.name != ws }
+      end
+      
+      if block_given?
+        layers.each {|l| yield l}
+      else
+        layers
+      end
     end
 
     # @param [String] layer name
     # @return [RGeoServer::Layer]
     def get_layer layer
-      response = self.search :layers => layer
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath("#{Layer.member_xpath}/name/text()").to_s
-      return Layer.new self, :name => name
+      doc = Nokogiri::XML(search :layers => layer)
+      Layer.new self, :name => parse_name(doc, Layer.class)
     end
 
     #= LayerGroups
@@ -121,16 +133,14 @@ module RGeoServer
                  end
       doc = Nokogiri::XML(response)
       layer_groups = doc.xpath(LayerGroup.root_xpath).collect{|l| l.text.to_s }.map(&:strip)
-      yield list LayerGroup, layer_groups, {workspace: options[:workspace]}
+      list LayerGroup, layer_groups, :workspace => options[:workspace]
     end
 
     # @param [String] layer group name
     # @return [RGeoServer::LayerGroup]
     def get_layergroup layergroup
-      response = self.search :layergroups => layergroup
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath("#{LayerGroup.member_xpath}/name/text()").to_s
-      return LayerGroup.new self, :name => name
+      doc = Nokogiri::XML(search :layergroups => layergroup)
+      LayerGroup.new self, :name => parse_name(doc, LayerGroup.class)
     end
 
     #= Styles (SLD Style Layer Descriptor)
@@ -138,19 +148,16 @@ module RGeoServer
     # List of available styles
     # @return [Array<RGeoServer::Style>]
     def get_styles
-      response = self.search :styles => nil
-      doc = Nokogiri::XML(response)
-      styles = doc.xpath(Style.root_xpath).collect{|l| l.text.to_s }
-      yield list Style, styles, {}
+      doc = Nokogiri::XML(search :styles => nil)
+      styles = doc.xpath("#{Style.root_xpath}/name/text()").collect {|s| s.to_s }
+      list Style, styles
     end
 
     # @param [String] style name
     # @return [RGeoServer::Style]
     def get_style style
-      response = self.search :styles => style
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath("#{Style.member_xpath}/name/text()").to_s
-      return Style.new self, :name => name
+      doc = Nokogiri::XML(search :styles => style)
+      Style.new self, :name => parse_name(doc, Style.class)
     end
 
 
@@ -164,11 +171,9 @@ module RGeoServer
 
     # @return [RGeoServer::Namespace]
     def get_default_namespace
-      response = self.search :namespaces => 'default'
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath("#{Namespace.member_xpath}/prefix/text()").to_s
-      uri = doc.at_xpath("#{Namespace.member_xpath}/uri/text()").to_s
-      return Namespace.new self, :name => name, :uri => uri
+      doc = Nokogiri::XML(search :namespaces => 'default')
+      Namespace.new self, :name => parse_name(doc, Namespace.class, 'prefix'), 
+                          :uri => parse_name(doc, Namespace.class, 'uri')
     end
 
     def set_default_namespace id, prefix, uri
@@ -189,10 +194,9 @@ module RGeoServer
     # @param [String] datastore
     # @return [RGeoServer::DataStore]
     def get_data_store workspace, datastore
-      response = self.search({:workspaces => workspace, :datastores => datastore})
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath('/dataStore/name')
-      return DataStore.new self, :workspace => workspace, :name => name.text
+      doc = Nokogiri::XML(search :workspaces => workspace, :datastores => datastore)
+      DataStore.new self, :workspace => workspace, 
+                          :name => parse_name(doc, DataStore.class)
     end
 
     # List of feature types
@@ -210,7 +214,6 @@ module RGeoServer
     def get_feature_type workspace, datastore, featuretype_id
       raise NotImplementedError
     end
-
 
     #= Coverages (Raster datasets)
 
@@ -231,7 +234,10 @@ module RGeoServer
     end
 
     def get_coverage workspace, coverage_store, coverage
-      c = Coverage.new self, :workspace => workspace, :coverage_store => coverage_store, :name => coverage
+      c = Coverage.new self, 
+                       :workspace => workspace, 
+                       :coverage_store => coverage_store, 
+                       :name => coverage
       return c.new?? nil : c
     end
 
@@ -249,10 +255,8 @@ module RGeoServer
     # @param [String] wmsstore
     # @return [RGeoServer::WmsStore]
     def get_wms_store workspace, wmsstore
-      response = self.search({:workspaces => workspace, :name => wmsstore})
-      doc = Nokogiri::XML(response)
-      name = doc.at_xpath(WmsStore.member_xpath)
-      return WmsStore.new self, workspace, name.text if name
+      doc = Nokogiri::XML(search :workspaces => workspace, :name => wmsstore)
+      WmsStore.new self, workspace, parse_name(doc, WmsStore.class)
     end
 
     #= Configuration reloading
@@ -265,6 +269,13 @@ module RGeoServer
     # Resets all store/raster/schema caches and starts fresh. This operation is used to force GeoServer to drop all caches and stores and reconnect fresh to each of them first time they are needed by a request. This is useful in case the stores themselves cache some information about the data structures they manage that changed in the meantime.
     def reset
       do_url 'reset', :put
+    end
+
+    private
+    def parse_name doc, klass, k = 'name'
+      name = doc.at_xpath("#{klass.member_xpath}/#{k}/text()")
+      name = name.to_s unless name.nil?
+      name
     end
 
   end

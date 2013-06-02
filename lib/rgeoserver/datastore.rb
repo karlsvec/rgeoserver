@@ -95,8 +95,8 @@ module RGeoServer
     end
 
     # @param [RGeoServer::Catalog] catalog
-    # @param [RGeoServer::Workspace|String] workspace
-    # @param [String] name
+    # @param [RGeoServer::Workspace|String] options `:workspace`
+    # @param [String] options `:name`
     def initialize catalog, options
       super({})
       _run_initialize_callbacks do
@@ -107,7 +107,7 @@ module RGeoServer
         elsif workspace.instance_of? Workspace
           @workspace = workspace
         else
-          raise "Not a valid workspace"
+          raise ArgumentError, "Not a valid workspace: #{workspace}"
         end
 
         @name = options[:name].strip

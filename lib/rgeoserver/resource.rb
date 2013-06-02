@@ -36,23 +36,31 @@ module RGeoServer
       # @param [Array<String>] names
       # @param [Hash] options
       # @param [bool] check_remote if already exists in catalog and cache it
-      # @yield [RGeoServer::ResourceInfo]
-      def self.list klass, catalog, names, options, check_remote = false
-        if names.nil?
-          return []
-        elsif block_given?
-          (names.is_a?(Array)? names : [names]).each do |name|
-            obj = klass.new catalog, options.merge(:name => name)
-            obj.new? if check_remote
-            yield(obj)
+      # @yield [RGeoServer::ResourceInfo] optional
+      def self.list klass, catalog, names, options = {}, check_remote = false
+        raise ArgumentError, "Names required" if names.nil?
+        names = [names] unless names.is_a? Array
+        l = []
+        names.each do |name|
+          obj = klass.new catalog, options.merge(:name => name)
+          obj.new? if check_remote
+          if block_given?
+            yield obj 
+          else
+            l << obj
           end
-        else
-          to_enum(:list, klass, catalog, names, options).to_a
-        end        
-      end
+        end
+        l
+       end
 
       def initialize options = nil
         @new = true
+        unless defined? @catalog
+          @catalog = nil
+        end
+        unless defined? @name
+          @name = nil
+        end
       end
 
       def to_s
@@ -61,8 +69,8 @@ module RGeoServer
 
       # Return full name of resource with namespace prefix
       def prefixed_name
-        return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
-        raise "Workspace is not defined for this resource"
+        raise ArgumentError, "Workspace is required" unless self.respond_to?(:workspace)
+        "#{workspace.name}:#{name}"
       end
 
       def create_method
@@ -141,23 +149,22 @@ module RGeoServer
       # Retrieve the resource profile as a hash and cache it
       # @return [Hash]
       def profile
-        if @profile
-          return @profile
+        unless @profile
+          begin
+            profile = @catalog.search @route => @name
+            @new = false
+          rescue RestClient::ResourceNotFound # The resource is new
+            @profile = {}
+            @new = true
+          end
+          @profile.freeze unless @profile.frozen?
         end
-
-        @profile ||= begin
-          h = profile_xml_to_hash(@catalog.search @route => @name )
-          @new = false
-          h
-        rescue RestClient::ResourceNotFound
-          # The resource is new
-          @new = true
-          {}
-        end.freeze
+        @profile
       end
 
       def profile= profile_xml
         @profile = profile_xml_to_hash(profile_xml)
+        @profile.freeze
       end
 
       def profile_xml_to_ng profile_xml

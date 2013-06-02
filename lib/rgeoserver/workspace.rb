@@ -57,16 +57,16 @@ module RGeoServer
       @route = route
     end
 
-    def data_stores
-      yield self.class.list DataStore, @catalog, profile['dataStores'], {:workspace => self}, true
+    def each_data_store
+      each_stores(DataStore) {|x| yield x}
     end
   
-    def coverage_stores
-      yield self.class.list CoverageStore, @catalog, profile['coverageStores'], {:workspace => self}, true
+    def each_coverage_store
+      each_stores(CoverageStore) {|x| yield x}
     end
 
-    def wms_stores
-      yield self.class.list WmsStore, @catalog, profile['wmsStores'], {:workspace => self}, true
+    def each_wms_store
+      each_stores(WmsStore) {|x| yield x}
     end
 
     def profile_xml_to_hash profile_xml
@@ -93,6 +93,11 @@ module RGeoServer
         end
        }
       h  
+    end
+
+    private
+    def each_store klass
+      list(klass, @catalog, profile[klass.root], {:workspace => self}, true) {|x| yield x}
     end
 
   end
