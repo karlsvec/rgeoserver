@@ -145,7 +145,7 @@ module RGeoServer
           end
         }
       end
-      ap builder.doc
+      # ap builder.doc
       @message = builder.doc.to_xml
     end
 

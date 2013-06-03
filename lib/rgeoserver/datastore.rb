@@ -89,7 +89,7 @@ module RGeoServer
           }
         }
       end
-      ap builder.doc
+      # ap builder.doc
       builder.doc.to_xml
     end
 
@@ -134,7 +134,7 @@ module RGeoServer
     # @param [Symbol] data_type -- currently only :shapefile
     # @param [Boolean] publish -- only valid for :file  
     def upload path, upload_method = :file, data_type = :shapefile, publish = false
-      ap({ :path => path, :upload_method => upload_method, :data_type => data_type, :publish => publish, :self => self})
+      # ap({ :path => path, :upload_method => upload_method, :data_type => data_type, :publish => publish, :self => self})
 
       raise DataStoreAlreadyExists, @name unless new?
       raise DataTypeNotExpected, data_type unless [:shapefile].include? data_type
