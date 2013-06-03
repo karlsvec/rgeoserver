@@ -49,24 +49,23 @@ module RGeoServer
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     def initialize catalog, options
-      super({})
+      super(catalog)
       _run_initialize_callbacks do
-        @catalog = catalog
         @name = options[:name].strip
       end        
       @route = route
     end
 
-    def each_data_store
-      each_stores(DataStore) {|x| yield x}
+    def data_stores &block
+      self.class.list DataStore, @catalog, profile['dataStores'], {:workspace => self}, true, &block
     end
   
-    def each_coverage_store
-      each_stores(CoverageStore) {|x| yield x}
+    def coverage_stores &block
+      self.class.list CoverageStore, @catalog, profile['coverageStores'], {:workspace => self}, true, &block
     end
 
-    def each_wms_store
-      each_stores(WmsStore) {|x| yield x}
+    def wms_stores &block
+      self.class.list WmsStore, @catalog, profile['wmsStores'], {:workspace => self}, true, &block
     end
 
     def profile_xml_to_hash profile_xml

@@ -2,7 +2,7 @@ require 'rgeo'
 
 module RGeoServer
   class BoundingBox
-    attr_accessor :minx, :miny, :maxx, :maxy
+    attr_reader :minx, :miny, :maxx, :maxy
 
     @@epsilon = 0.0001
 
@@ -16,19 +16,18 @@ module RGeoServer
     
     # @param [Array] a in [minx, miny, maxx, maxy]
     def self.from_a a
-      self.class.new {
-          'minx' => a[0].to_f,
-          'miny' => a[1].to_f,
-          'maxx' => a[2].to_f,
-          'maxy' => a[3].to_f
-        }
+      self.class.new Hash.new('minx' => a[0].to_f,
+                              'miny' => a[1].to_f,
+                              'maxx' => a[2].to_f,
+                              'maxy' => a[3].to_f)
+        
     end
 
     def initialize options = {}
       reset
       if ['minx', 'miny', 'maxx', 'maxy'].all? {|k| options.include?(k)}
-        add options['minx'].to_f, options['miny'].to_f
-        add options['maxx'].to_f, options['maxx'].to_f
+        add options['minx'].to_f, options['miny'].to_f # SW
+        add options['maxx'].to_f, options['maxx'].to_f # NE
       end
     end
 
@@ -37,31 +36,35 @@ module RGeoServer
       @empty = true
     end
 
+    def << point
+      add point[0], point[1]
+    end
+    
     def add x, y
       if @empty
         @minx = @maxx = x
         @miny = @maxy = y
       end
 
-      @minx = [@minx, x].min
-      @miny = [@miny, y].min
-      @maxx = [@maxx, x].max
-      @maxy = [@maxy, y].max
+      @minx = [minx, x].min
+      @miny = [miny, y].min
+      @maxx = [maxx, x].max
+      @maxy = [maxy, y].max
 
       @empty = false
     end
 
     def min
-      [@minx, @miny]
+      [minx, miny]
     end
 
     def max
-      [@maxx, @maxy]
+      [maxx, maxy]
     end
 
     def expand rate = @@epsilon
-      _minx, _miny = [@minx - rate, @miny - rate]
-      _maxx, _maxy = [@maxx + rate, @maxy + rate]
+      _minx, _miny = [minx - rate, miny - rate]
+      _maxx, _maxy = [maxx + rate, maxy + rate]
 
       reset
 
@@ -70,22 +73,34 @@ module RGeoServer
     end
 
     def constrict rate = @@epsilon
-      expand -rate
+      expand(-rate)
+    end
+    
+    def width
+      maxx - minx
+    end
+    
+    def height
+      maxy - miny
+    end
+    
+    def area
+      width * height
     end
     
     # @return true if bounding box has non-zero area
     def valid?
-      @maxx > @minx and @maxy > @miny
+      area > 0
     end
 
     def to_geometry
       factory = RGeo::Cartesian::Factory.new
 
-      point_min, point_max = unless [@minx, @miny] == [@maxx, @maxy]
-        [factory.point(@minx, @miny), factory.point(@maxx, @maxy)]
+      point_min, point_max = unless [minx, miny] == [maxx, maxy]
+        [factory.point(minx, miny), factory.point(maxx, maxy)]
       else
-        [factory.point(@minx - @@epsilon, @miny - @@epsilon),
-         factory.point(@maxx + @@epsilon, @maxy + @@epsilon)]
+        [factory.point(minx - @@epsilon, miny - @@epsilon),
+         factory.point(maxx + @@epsilon, maxy + @@epsilon)]
       end
 
       line_string = factory.line_string [point_min, point_max]
@@ -94,15 +109,15 @@ module RGeoServer
     
     def to_h
       {
-        :minx => @minx,
-        :miny => @miny,
-        :maxx => @maxx,
-        :maxy => @maxy
+        :minx => minx,
+        :miny => miny,
+        :maxx => maxx,
+        :maxy => maxy
       }
     end
 
     def to_a
-      [@minx, @miny, @maxx, @maxy]
+      [minx, miny, maxx, maxy]
     end
 
     def to_s

@@ -155,9 +155,8 @@ module RGeoServer
     def initialize catalog, options
       raise GeoServerArgumentError, "FeatureType.new requires :data_store option" unless options.include?(:data_store)
       raise GeoServerArgumentError, "FeatureType.new requires :name option" unless options.include?(:name)
-      
+      super(catalog)
       _run_initialize_callbacks do
-        @catalog = catalog
         workspace = options[:workspace] || 'default'
         if workspace.instance_of? String
           @workspace = @catalog.get_workspace(workspace)
@@ -236,13 +235,13 @@ module RGeoServer
     def valid_native_bounds?
       bbox = RGeoServer::BoundingBox.new(native_bounds)
       ap bbox if $DEBUG
-      bbox.valid? and not native_bounds['crs'].compact.empty?
+      not bbox.nil? and bbox.valid? and not native_bounds['crs'].empty?
     end
 
     def valid_latlon_bounds?
       bbox = RGeoServer::BoundingBox.new(latlon_bounds)
       ap bbox if $DEBUG
-      bbox.valid? and not latlon_bounds['crs'].compact.empty?
+      not bbox.nil? and bbox.valid? and not latlon_bounds['crs'].empty?
     end
 
     private

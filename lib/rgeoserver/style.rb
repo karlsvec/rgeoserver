@@ -62,9 +62,8 @@ module RGeoServer
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     def initialize catalog, options
-      super({})
+      super(catalog)
       _run_initialize_callbacks do
-        @catalog = catalog
         @name = options[:name].strip
       end        
       @route = route

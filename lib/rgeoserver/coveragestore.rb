@@ -72,9 +72,8 @@ module RGeoServer
     # @param [RGeoServer::Workspace|String] workspace
     # @param [String] name
     def initialize catalog, options 
-      super({})
+      super(catalog)
       _run_initialize_callbacks do
-        @catalog = catalog
         workspace = options[:workspace] || 'default'
         if workspace.instance_of? String
           @workspace = @catalog.get_workspace(workspace)

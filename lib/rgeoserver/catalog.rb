@@ -92,24 +92,11 @@ module RGeoServer
 
     # List of available layers
     # @return [Array<RGeoServer::Layer>]
-    # @yield [RGeoServer::Layer]
-    def get_layers options = {}
-      doc = Nokogiri::XML(search :layers => nil)
-      layer_nodes = doc.xpath(Layer.root_xpath).collect{|l| l.text.to_s }
-      layers = list Layer.class, layer_nodes
-
-      # filter by workspace
-      if options[:workspace]
-        ws = options[:workspace]
-        ws = ws.name if ws.is_a? Workspace.class
-        layers.reject! { |l| l.workspace.name != ws }
-      end
-      
-      if block_given?
-        layers.each {|l| yield l}
-      else
-        layers
-      end
+    def each_layer options = {}
+      doc = Nokogiri::XML(self.search :layers => nil)
+      doc.xpath(Layer.root_xpath).each { |l|
+        yield get_layer l.text.to_s.strip
+      }
     end
 
     # @param [String] layer name

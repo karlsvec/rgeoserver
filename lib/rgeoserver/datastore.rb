@@ -24,7 +24,6 @@ module RGeoServer
     end
 
     OBJ_ATTRIBUTES = {
-      :catalog => 'catalog', 
       :workspace => 'workspace', 
       :connection_parameters => "connection_parameters",
       :name => 'name', 
@@ -33,13 +32,12 @@ module RGeoServer
       :description => 'description'
     }  
     OBJ_DEFAULT_ATTRIBUTES = {
-      :catalog => nil, 
       :workspace => nil, 
       :connection_parameters => {}, 
       :name => nil, 
-      :data_type => 'Shapefile',
-      :enabled => 'true', 
-      :description=>nil
+      :data_type => :shapefile,
+      :enabled => true, 
+      :description => nil
     }  
     
     define_attribute_methods OBJ_ATTRIBUTES.keys
@@ -91,6 +89,7 @@ module RGeoServer
           }
         }
       end
+      ap builder.doc
       builder.doc.to_xml
     end
 
@@ -103,7 +102,7 @@ module RGeoServer
         @catalog = catalog
         workspace = options[:workspace] || 'default'
         if workspace.instance_of? String
-          @workspace = @catalog.get_workspace(workspace)
+          @workspace = catalog.get_workspace(workspace)
         elsif workspace.instance_of? Workspace
           @workspace = workspace
         else
@@ -116,33 +115,62 @@ module RGeoServer
     end
 
     def featuretypes &block
-      self.class.list FeatureType.class, 
-                      @catalog, 
-                      profile['featureTypes'], 
-                      {:workspace => @workspace, :data_store => self}, 
-                      true, &block
+      self.class.list FeatureType, catalog, profile['featureTypes'], {:workspace => @workspace, :data_store => self}, true, &block
     end
 
-    # @param [String] path
-    #   * ZIP file located on server (:external)
-    #   * ZIP file downloaded from url (:url)
-    #   * ZIP file uploaded from local file (:file)
-    # @param [String] method one of :url, :external, or :file
-    # @param [String] options
-    # @return self
-    def upload path, method = :url, options = {}
-      case method
+    def upload_file local_file, publish = {}
+      upload local_file, :file, data_type, publish
+    end
+    def upload_external remote_file, publish = {}
+      puts "Uploading external file #{remote_file} #{publish}"
+      upload remote_file, :external, data_type, publish
+    end
+    def upload_url url, publish = {}
+      upload url, :url, data_type, publish
+    end
+    
+    # @param [String] path - location of upload data
+    # @param [Symbol] upload_method -- flag for :file, :url, or :external
+    # @param [Symbol] data_type -- currently only :shapefile
+    # @param [Boolean] publish -- only valid for :file  
+    def upload path, upload_method = :file, data_type = :shapefile, publish = false
+      ap({ :path => path, :upload_method => upload_method, :data_type => data_type, :publish => publish, :self => self})
+
+      raise DataStoreAlreadyExists, @name unless new?
+      raise DataTypeNotExpected, data_type unless [:shapefile].include? data_type
+
+      ext = 'shp'
+      case upload_method
+      when :file then # local file that we post
+        local_file = File.expand_path(path)
+        unless local_file =~ %r{\.zip$} and File.exist? local_file
+          raise ArgumentError, "Shapefile upload must be ZIP file: #{local_file}" 
+        end
+        catalog.client["#{route}/#{name}/file.#{ext}"].put File.read(local_file), :content_type => 'application/zip'
+        refresh
+        if publish
+          ft = RGeoServer::FeatureType.new catalog, :workspace => @workspace, :data_store => self, :name => @name
+          ap ft
+          ft.title = @name
+          ft.description = @description
+          ft.enabled = true
+          ft.save
+
+          catalog.each_layer workspace: @workspace do |l|
+            l.enabled = true
+            l.save
+          end
+        end
+      when :external then # remote file that we reference
+        catalog.client["#{route}/#{name}/external.#{ext}"].put path, :content_type => 'text/plain'
       when :url then
-        catalog.client["#{update_route}/url.shp"].put path
-      when :external then
-        catalog.client["#{update_route}/external.shp"].put path
-      when :file then
-        upload_file path, options
+        catalog.client["#{route}/#{name}/url.#{ext}"].put path, :content_type => 'text/plain'
+      else
+        raise NotImplementedError, "Unsupported upload method #{upload_method}"
       end
-      refresh
+      self
     end
 
-        
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
       h = {
@@ -156,7 +184,7 @@ module RGeoServer
       doc.xpath('//featureTypes/atom:link[@rel="alternate"]/@href', 
                 "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
         h["featureTypes"] = begin
-                              response = @catalog.do_url l.text
+                              response = catalog.do_url l.text
                               # lazy loading: only loads featuretype names
                               Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
                             rescue RestClient::ResourceNotFound
@@ -165,61 +193,5 @@ module RGeoServer
       end
       h
     end
-    
-    protected
-    # @param [String] file_path
-    # @param [Hash] options { data_type: [:shapefile] }. optional
-    def upload_file file_path, options = {}
-      raise DataStoreAlreadyExists, @name unless new?
-
-      options = options.dup
-
-      data_type = options.delete(:data_type) || :shapefile
-      data_type = data_type.to_sym
-
-      publish = options.delete(:publish) || false
-
-      upload_url_suffix = case data_type
-                          when :shapefile then "#{update_route}/file.shp"
-                          else
-                            raise DataTypeNotExpected, data_type
-                          end
-
-      @catalog.client[upload_url_suffix].put File.read(file_path), :content_type => 'application/zip'
-
-      clear
-      connection_parameters['url'] = connection_parameters['url'].gsub(/.*data/, '').insert(0, 'file:data') #correct to relative path
-      save
-      clear
-
-      if publish
-        ft = RGeoServer::FeatureType.new @catalog, :workspace => @workspace, :data_store => self, :name => @name
-        ft.title = ft.name.capitalize
-        ft.abstract = ft.name.capitalize
-        ft.enabled = true
-
-        bounds = case data_type
-                 when :shapefile
-                   shpInfo = ShapefileInfo.new file_path
-                   shpInfo.bounds
-                 else
-                   raise DataTypeNotExpected, data_type
-                 end
-
-        ft.native_bounds['minx'], ft.native_bounds['miny'], ft.native_bounds['maxx'], ft.native_bounds['maxy'] =
-          bounds.to_a
-        ft.projection_policy = :force
-        ft.save
-
-        layers = catalog.get_layers :workspace => @workspace
-        layers.find_all{ |layer| layer.name == ft.name }.each do |layer|
-          layer.enabled = true
-          layer.save
-        end
-      end
-
-      self
-    end
-    
   end
 end

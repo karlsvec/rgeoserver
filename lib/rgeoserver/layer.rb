@@ -102,9 +102,8 @@ module RGeoServer
     # @option options [String] :default_style
     # @option options [Array<String>] :alternate_styles
     def initialize catalog, options
-      super({})
+      super(catalog)
       _run_initialize_callbacks do
-        @catalog = catalog
         raise GeoServerArgumentError, "Layer requires :name option" unless options.include? :name
         @name = options[:name].strip
         
@@ -198,6 +197,12 @@ module RGeoServer
 
     def workspace
       resource.workspace
+    end
+
+    # Return full name of resource with namespace prefix
+    def prefixed_name
+      return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
+      raise "Workspace is not defined for this resource"
     end
 
     #= GeoWebCache Operations for this layer

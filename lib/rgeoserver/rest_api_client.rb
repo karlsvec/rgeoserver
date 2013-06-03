@@ -83,7 +83,7 @@ module RGeoServer
       request.options[:headers] = h
       $logger.debug "Adding: \n #{message}"
       begin 
-        # ap({:add_request => request, :add_message => Nokogiri::XML(message)})
+        ap({:add_request => request, :add_message => Nokogiri::XML(message)})
         return request.send method, message
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -104,7 +104,7 @@ module RGeoServer
       request.options[:headers] = h
       $logger.debug "Modifying: \n #{message}"
       begin
-        # ap({:modify_request => request, :modify_message => Nokogiri::XML(message)})
+        ap({:modify_request => request, :modify_message => Nokogiri::XML(message)})
         return request.send method, message
       rescue RestClient::InternalServerError => e
         $logger.error e.response

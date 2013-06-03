@@ -9,6 +9,8 @@ module RGeoServer
       define_model_callbacks :save, :destroy
       define_model_callbacks :initialize, :only => :after
 
+      attr_accessor :catalog
+      
       # mapping object parameters to profile elements
       OBJ_ATTRIBUTES = {:enabled => 'enabled'}
       OBJ_DEFAULT_ATTRIBUTES = {:enabled => 'true'}
@@ -51,26 +53,15 @@ module RGeoServer
           end
         end
         l unless block_given?
-       end
+      end
 
-      def initialize options = nil
+      def initialize catalog = nil
         @new = true
-        unless defined? @catalog
-          @catalog = nil
-        end
-        unless defined? @name
-          @name = nil
-        end
+        @catalog = catalog
       end
 
       def to_s
-        "#{self.class.name}: #{name}"
-      end
-
-      # Return full name of resource with namespace prefix
-      def prefixed_name
-        raise ArgumentError, "Workspace is required" unless self.respond_to?(:workspace)
-        "#{workspace.name}:#{name}"
+        "#{self.class.name}: #{name} (#{new?}) on #{catalog}"
       end
 
       def create_method
@@ -157,7 +148,7 @@ module RGeoServer
       def profile
         unless @profile
           begin
-            profile = @catalog.search @route => @name
+            self.profile = @catalog.search @route => @name
             @new = false
           rescue RestClient::ResourceNotFound # The resource is new
             @profile = {}
