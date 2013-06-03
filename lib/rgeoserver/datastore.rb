@@ -115,10 +115,58 @@ module RGeoServer
       end
     end
 
-    def featuretypes
-      yield self.class.list FeatureType, @catalog, profile['featureTypes'], {:workspace => @workspace, :data_store => self}, true
+    def featuretypes &block
+      self.class.list FeatureType.class, 
+                      @catalog, 
+                      profile['featureTypes'], 
+                      {:workspace => @workspace, :data_store => self}, 
+                      true, &block
     end
 
+    # @param [String] path
+    #   * ZIP file located on server (:external)
+    #   * ZIP file downloaded from url (:url)
+    #   * ZIP file uploaded from local file (:file)
+    # @param [String] method one of :url, :external, or :file
+    # @param [String] options
+    # @return self
+    def upload path, method = :url, options = {}
+      case method
+      when :url then
+        catalog.client["#{update_route}/url.shp"].put path
+      when :external then
+        catalog.client["#{update_route}/external.shp"].put path
+      when :file then
+        upload_file path, options
+      end
+      refresh
+    end
+
+        
+    def profile_xml_to_hash profile_xml
+      doc = profile_xml_to_ng profile_xml
+      h = {
+        "name" => doc.at_xpath('//name').text.strip,
+        "description" => doc.at_xpath('//description/text()').to_s,
+        "enabled" => doc.at_xpath('//enabled/text()').to_s,
+        'type' => doc.at_xpath('//type/text()').to_s,
+        "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
+      }
+      # XXX: assume that we know the workspace for <workspace>...</workspace>
+      doc.xpath('//featureTypes/atom:link[@rel="alternate"]/@href', 
+                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
+        h["featureTypes"] = begin
+                              response = @catalog.do_url l.text
+                              # lazy loading: only loads featuretype names
+                              Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
+                            rescue RestClient::ResourceNotFound
+                              []
+                            end.freeze
+      end
+      h
+    end
+    
+    protected
     # @param [String] file_path
     # @param [Hash] options { data_type: [:shapefile] }. optional
     def upload_file file_path, options = {}
@@ -163,7 +211,7 @@ module RGeoServer
         ft.projection_policy = :force
         ft.save
 
-        layers = catalog.get_layers workspace: @workspace
+        layers = catalog.get_layers :workspace => @workspace
         layers.find_all{ |layer| layer.name == ft.name }.each do |layer|
           layer.enabled = true
           layer.save
@@ -172,28 +220,6 @@ module RGeoServer
 
       self
     end
-
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml
-      h = {
-        "name" => doc.at_xpath('//name').text.strip,
-        "description" => doc.at_xpath('//description/text()').to_s,
-        "enabled" => doc.at_xpath('//enabled/text()').to_s,
-        'type' => doc.at_xpath('//type/text()').to_s,
-        "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
-      }
-      # XXX: assume that we know the workspace for <workspace>...</workspace>
-      doc.xpath('//featureTypes/atom:link[@rel="alternate"]/@href', 
-                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
-        h["featureTypes"] = begin
-                              response = @catalog.do_url l.text
-                              # lazy loading: only loads featuretype names
-                              Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
-                            rescue RestClient::ResourceNotFound
-                              []
-                            end.freeze
-      end
-      h
-    end
+    
   end
 end

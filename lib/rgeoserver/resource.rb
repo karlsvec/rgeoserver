@@ -36,11 +36,11 @@ module RGeoServer
       # @param [Array<String>] names
       # @param [Hash] options
       # @param [bool] check_remote if already exists in catalog and cache it
-      # @yield [RGeoServer::ResourceInfo] optional
+      # @yield [RGeoServer::ResourceInfo,klass] optional
       def self.list klass, catalog, names, options = {}, check_remote = false
         raise ArgumentError, "Names required" if names.nil?
         names = [names] unless names.is_a? Array
-        l = []
+        l = [] unless block_given?
         names.each do |name|
           obj = klass.new catalog, options.merge(:name => name)
           obj.new? if check_remote
@@ -50,7 +50,7 @@ module RGeoServer
             l << obj
           end
         end
-        l
+        l unless block_given?
        end
 
       def initialize options = nil
@@ -144,6 +144,12 @@ module RGeoServer
       def clear
         @profile = nil
         @changed_attributes = {}
+      end
+      
+      def refresh
+        clear
+        profile
+        self
       end
 
       # Retrieve the resource profile as a hash and cache it

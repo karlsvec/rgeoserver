@@ -41,13 +41,11 @@ module RGeoServer
     # @param [Hash] options
     # @param [bool] check_remote if already exists in catalog and cache it
     # @yield [RGeoServer::ResourceInfo]
-    def list klass, names, options = {}, check_remote = false
+    def list klass, names, options = {}, check_remote = false, &block
       unless names.is_a? Array and not names.empty?
         raise ArgumentError, "Missing names #{names}" 
       end
-      a = ResourceInfo.list klass, self, names, options, check_remote
-      a.each {|x| yield x} if block_given?
-      a
+      ResourceInfo.list klass, self, names, options, check_remote, &block
     end
 
     #= Workspaces
