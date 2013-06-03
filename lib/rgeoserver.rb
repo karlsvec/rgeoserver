@@ -8,9 +8,9 @@ require 'time'
 # RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface.
 module RGeoServer
   require 'rgeoserver/version'
-  
+  require 'rgeoserver/config'
+
   autoload :Catalog,              "rgeoserver/catalog"
-  autoload :Config,               "rgeoserver/config"
   autoload :Coverage,             "rgeoserver/coverage"
   autoload :CoverageStore,        "rgeoserver/coveragestore"
   autoload :DataStore,            "rgeoserver/datastore"
@@ -31,7 +31,7 @@ module RGeoServer
 
   # @return [Catalog] the default GeoServer Catalog instance
   def self.catalog
-    @@catalog ||= Catalog.new RGeoServer::config[:geoserver]
+    @@catalog ||= RGeoServer::Catalog.new RGeoServer::Config[:geoserver]
   end
 
   class RGeoServerError < StandardError

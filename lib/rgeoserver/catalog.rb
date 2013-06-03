@@ -62,7 +62,7 @@ module RGeoServer
     # @return [RGeoServer::Workspace]
     def get_workspace ws
       doc = Nokogiri::XML(search :workspaces => ws)
-      Workspace.new self, :name => parse_name(doc, Workspace.class)
+      Workspace.new self, :name => parse_name(doc, Workspace)
     end
     
 
@@ -103,7 +103,7 @@ module RGeoServer
     # @return [RGeoServer::Layer]
     def get_layer layer
       doc = Nokogiri::XML(search :layers => layer)
-      Layer.new self, :name => parse_name(doc, Layer.class)
+      Layer.new self, :name => parse_name(doc, Layer)
     end
 
     #= LayerGroups
@@ -125,7 +125,7 @@ module RGeoServer
     # @return [RGeoServer::LayerGroup]
     def get_layergroup layergroup
       doc = Nokogiri::XML(search :layergroups => layergroup)
-      LayerGroup.new self, :name => parse_name(doc, LayerGroup.class)
+      LayerGroup.new self, :name => parse_name(doc, LayerGroup)
     end
 
     #= Styles (SLD Style Layer Descriptor)
@@ -142,7 +142,7 @@ module RGeoServer
     # @return [RGeoServer::Style]
     def get_style style
       doc = Nokogiri::XML(search :styles => style)
-      Style.new self, :name => parse_name(doc, Style.class)
+      Style.new self, :name => parse_name(doc, Style)
     end
 
 
@@ -157,8 +157,8 @@ module RGeoServer
     # @return [RGeoServer::Namespace]
     def get_default_namespace
       doc = Nokogiri::XML(search :namespaces => 'default')
-      Namespace.new self, :name => parse_name(doc, Namespace.class, 'prefix'), 
-                          :uri => parse_name(doc, Namespace.class, 'uri')
+      Namespace.new self, :name => parse_name(doc, Namespace, 'prefix'), 
+                          :uri => parse_name(doc, Namespace, 'uri')
     end
 
     def set_default_namespace id, prefix, uri
@@ -181,7 +181,7 @@ module RGeoServer
     def get_data_store workspace, datastore
       doc = Nokogiri::XML(search :workspaces => workspace, :datastores => datastore)
       DataStore.new self, :workspace => workspace, 
-                          :name => parse_name(doc, DataStore.class)
+                          :name => parse_name(doc, DataStore)
     end
 
     # List of feature types
@@ -241,7 +241,7 @@ module RGeoServer
     # @return [RGeoServer::WmsStore]
     def get_wms_store workspace, wmsstore
       doc = Nokogiri::XML(search :workspaces => workspace, :name => wmsstore)
-      WmsStore.new self, workspace, parse_name(doc, WmsStore.class)
+      WmsStore.new self, workspace, parse_name(doc, WmsStore)
     end
 
     #= Configuration reloading
