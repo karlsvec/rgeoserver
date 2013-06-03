@@ -148,19 +148,6 @@ module RGeoServer
         end
         catalog.client["#{route}/#{name}/file.#{ext}"].put File.read(local_file), :content_type => 'application/zip'
         refresh
-        if publish
-          ft = RGeoServer::FeatureType.new catalog, :workspace => @workspace, :data_store => self, :name => @name
-          ap ft
-          ft.title = @name
-          ft.description = @description
-          ft.enabled = true
-          ft.save
-
-          catalog.each_layer workspace: @workspace do |l|
-            l.enabled = true
-            l.save
-          end
-        end
       when :external then # remote file that we reference
         catalog.client["#{route}/#{name}/external.#{ext}"].put path, :content_type => 'text/plain'
       when :url then

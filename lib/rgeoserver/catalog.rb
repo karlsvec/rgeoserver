@@ -188,7 +188,7 @@ module RGeoServer
     # @param [String] workspace
     # @param [String] datastore
     # @return [Array<RGeoServer::FeatureType>]
-    def get_feature_types workspace, datastore
+    def get_feature_types workspace, datastore, &block
       raise NotImplementedError
     end
 
