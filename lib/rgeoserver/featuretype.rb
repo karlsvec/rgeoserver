@@ -91,7 +91,7 @@ module RGeoServer
           xml.name @name if new?
           xml.enabled @enabled# if new? or enabled_changed?
           xml.title @title# if new? or title_changed?
-          xml.description @description# if new? or description_changed?
+          xml.abstract @description# if new? or description_changed? # XXX: geoserver requires abstract here
           xml.keywords {
             @keywords.each do |k|
               xml.keyword RGeoServer::Metadata::to_keyword(k)
