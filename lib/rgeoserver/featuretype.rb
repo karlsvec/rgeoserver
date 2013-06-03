@@ -89,17 +89,16 @@ module RGeoServer
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
           xml.name @name if new?
-          xml.enabled @enabled if new? or enabled_changed?
-          xml.title @title if new? or title_changed?
-          xml.description @description if new? or description_changed?
+          xml.enabled @enabled# if new? or enabled_changed?
+          xml.title @title# if new? or title_changed?
+          xml.description @description# if new? or description_changed?
           xml.keywords {
             @keywords.each do |k|
               xml.keyword RGeoServer::Metadata::to_keyword(k)
             end
-          } if @keywords and new? or keywords_changed?
+          } if @keywords# and new? or keywords_changed?
 
           xml.metadataLinks {
-
             @metadata_links.each do |m|
               raise ArgumentError, "Malformed metadata_links" unless m.is_a? Hash
               xml.metadataLink {
@@ -108,7 +107,7 @@ module RGeoServer
                 xml.content m['content']
               }
             end
-          } if @metadata_links and new? or metadata_links_changed?
+          } if @metadata_links# and new? or metadata_links_changed?
           
           xml.store(:class => 'dataStore') {
             xml.name @data_store.name
