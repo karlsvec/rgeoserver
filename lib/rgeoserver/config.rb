@@ -7,8 +7,11 @@ module RGeoServer
     @@Config ||= Confstruct::Configuration.new(
       YAML.load(
         File.read(
-          ENV['RGEOSERVER_CONFIG'] or
-          File.join(File.dirname(__FILE__), '..', '..', 'config', 'defaults.yml'))))
+          ENV['RGEOSERVER_CONFIG'] ||
+          File.join(File.dirname(__FILE__), '..', '..', 'config', 'defaults.yml')
+        )
+      )
+    )
   end
 end
 
