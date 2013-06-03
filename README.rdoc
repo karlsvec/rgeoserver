@@ -1,6 +1,3 @@
-{<img src="https://gemnasium.com/rnz0/rgeoserver.png" alt="Dependency Status" />}[https://gemnasium.com/rnz0/rgeoserver]
-{<img src="https://secure.travis-ci.org/rnz0/rgeoserver.png" />}[http://travis-ci.org/rnz0/rgeoserver]
-
 == RGeoServer
 
 RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface. 
@@ -15,11 +12,9 @@ It provides primitive Ruby model abstraction.
 
 See the {GeoServer REST Configuration API Reference}[http://docs.geoserver.org/stable/en/user/rest/index.html]
 
-
 == Installation 
 
   $ gem install rgeoserver
-
 
 == Example: 
 
@@ -78,46 +73,13 @@ Sample usage from an irb console, using a GeoServer installation with a topp wor
       "sld"=>{"sld_name"=>"raster", "sld_title"=>"Default Raster"}} 
 
 
-Here's a GeoHydra head example:
-
-  >> c = RGeoServer::Catalog.new
-  Catalog: http://localhost:8080/geoserver/rest
-  >> w = c.get_default_workspace
-  RGeoServer::Workspace: druid
-  >> ds = w.data_stores
-  [
-      [0] RGeoServer::DataStore: ww217dj0457,
-      [1] RGeoServer::DataStore: fw920bc5473,
-      [2] RGeoServer::DataStore: vk120xn2474,
-      [3] RGeoServer::DataStore: df559hb2469,
-      [4] RGeoServer::DataStore: zv925hd6723,
-      [5] RGeoServer::DataStore: ks297fy1411,
-      [6] RGeoServer::DataStore: rt625ws6022,
-      [7] RGeoServer::DataStore: sq479mx3086,
-      [8] RGeoServer::DataStore: zz943vx1492,
-      [9] RGeoServer::DataStore: cs838pw3418
-  ]
-  >> ds.first.profile
-  {
-                       "name" => "ww217dj0457",
-                    "enabled" => "true",
-      "connection_parameters" => {
-                "url" => "file:/var/geoserver/current/data/data/druid/ww217dj0457/",
-          "namespace" => "http://purl.stanford.edu"
-      },
-               "featureTypes" => [
-          [0] "ww217dj0457"
-      ]
-  }
-    
-
 See *examples* directory for more examples.
 
 == Testing
 
 We use {jettywrapper}[https://github.com/projecthydra/jettywrapper] to wrap a test instance of GeoServer. In theory, you should be able to point to any other local installation. Suppose that you download the binary stable version 2.1.3 binary from {here}[http://sourceforge.net/project/downloading.php?groupname=geoserver&filename=geoserver-2.1.3-bin.zip&use_mirror=softlayer], then unzip it under say, /tmp/geoserver-2.1.3. The integration tests are executed as follows:
 
-  $ rake integration['/tmp/geoserver-2.1.3','8080','-DGEOSERVER_DATA_DIR=data_dir']
+  $ rake integration
 
 If you have the test instance running already on port 8080, you can run the tests simply with:
 
@@ -155,7 +117,7 @@ or
 
 == Release History
 
-- <b>v0.6</b> - Resource keywords, YAML-based configuration, REST API validation, additional unit testing and cleanup
+- <b>v0.6</b> - Major update with keywords, YAML config, REST API, unit testing and cleanup
 - <b>v0.5</b> - Initial alpha release
 
 == TODO
