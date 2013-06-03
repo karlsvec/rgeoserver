@@ -146,6 +146,8 @@ module RGeoServer
         unless local_file =~ %r{\.zip$} and File.exist? local_file
           raise ArgumentError, "Shapefile upload must be ZIP file: #{local_file}" 
         end
+        puts "Uploading #{File.size(local_file)} bytes from file #{local_file}..."
+        
         catalog.client["#{route}/#{name}/file.#{ext}"].put File.read(local_file), :content_type => 'application/zip'
         refresh
       when :external then # remote file that we reference
