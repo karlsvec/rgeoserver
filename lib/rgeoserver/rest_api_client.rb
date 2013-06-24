@@ -10,8 +10,9 @@ module RGeoServer
 
     # Instantiates a rest client with passed configuration
     # @param [Hash] c configuration 
-    # return <RestClient::Resource>
-    def rest_client c    
+    # return [RestClient::Resource]
+    def rest_client c
+      ap({:rest_client => c}) if $DEBUG
       RestClient::Resource.new(c[:url], 
           :user => c[:user], 
           :password => c[:password], 
@@ -52,7 +53,7 @@ module RGeoServer
       resources = client[url_for(what, options)]
       resources.options[:headers] = h
       begin
-        ap ({ :func => { :search => what }, :request => resources }) if $DEBUG
+        ap({ :func => { :search => what }, :request => resources }) if $DEBUG
         return resources.get
       rescue RestClient::InternalServerError => e
         $logger.error e.response
