@@ -13,6 +13,7 @@ module RGeoServer
     # return [RestClient::Resource]
     def rest_client c
       ap({:rest_client => c}) if $DEBUG
+      raise ArgumentError, "#rest_client requires :url" if c[:url].nil?
       RestClient::Resource.new(c[:url], 
           :user => c[:user], 
           :password => c[:password], 
@@ -23,13 +24,13 @@ module RGeoServer
 
     # @return [RestClient] cached or new client
     def client config = {}
-      @client ||= rest_client(self.config[:restclient].merge(config))
+      @client ||= rest_client(config.merge(self.config[:restclient]).merge(self.config))
     end
 
     # @return [RestClient] cached or new client
     def gwc_client config = {}
       unless @gwc_client.is_a? RestClient::Resource
-        c = self.config.merge(config)
+        c = config.merge(self.config[:restclient]).merge(self.config)
         if c[:geowebcache_url] and c[:geowebcache_url] != 'builtin'
           c[:url] = c[:geowebcache_url]
         else
