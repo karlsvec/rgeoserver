@@ -31,10 +31,10 @@ module RGeoServer
     def gwc_client config = {}
       unless @gwc_client.is_a? RestClient::Resource
         c = config.merge(self.config[:restclient]).merge(self.config)
-        if c[:geowebcache_url] and c[:geowebcache_url] != 'builtin'
-          c[:url] = c[:geowebcache_url]
-        else
+        if c[:geowebcache_url].nil? or c[:geowebcache_url] == 'builtin'
           c[:url] = c[:url].gsub(%r{/rest$}, '/gwc/rest') # switch to built-in GeoServer GWC
+        else
+          c[:url] = c[:geowebcache_url]
         end
         @gwc_client = rest_client(c)
       end

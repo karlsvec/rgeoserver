@@ -94,16 +94,20 @@ module RGeoServer
     # @return [Array<RGeoServer::Layer>]
     def each_layer options = {}
       doc = Nokogiri::XML(self.search :layers => nil)
-      doc.xpath(Layer.root_xpath).each { |l|
-        yield get_layer l.text.to_s.strip
+      ap({:each_layer_doc => doc, :xpath => Layer.root_xpath})
+      doc.xpath(Layer.root_xpath + '/name/text()').each { |l|
+        ap({:layer => l.to_s.strip})
+        yield get_layer l.to_s.strip unless l.nil?
       }
     end
 
-    # @param [String] layer name
+    # @param [String] layername
     # @return [RGeoServer::Layer]
-    def get_layer layer
-      doc = Nokogiri::XML(search :layers => layer)
-      Layer.new self, :name => parse_name(doc, Layer)
+    def get_layer layername
+      raise ArgumentError, "#get_layer requires String #{layername}" unless layername.is_a? String
+      ap({:layers => layername})
+      doc = Nokogiri::XML(search :layers => layername)
+      Layer.new self, :name => layername
     end
 
     #= LayerGroups

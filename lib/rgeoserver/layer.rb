@@ -104,8 +104,13 @@ module RGeoServer
     def initialize catalog, options
       super(catalog)
       _run_initialize_callbacks do
-        raise GeoServerArgumentError, "Layer requires :name option" unless options.include? :name
-        @name = options[:name].strip
+        if options[:name].instance_of? Layer
+          options[:name] = options[:name].name.to_s
+        end
+        
+        raise GeoServerArgumentError, "Layer requires :name option" unless options.include? :name and options[:name].is_a? String
+        @name = options[:name].to_s.strip
+        ap({:init_name => @name}) if $DEBUG
         
         raise NotImplementedError, ":default_style" if options.include? :default_style
         raise NotImplementedError, ":alternate_styles" if options.include? :alternate_styles
@@ -135,12 +140,12 @@ module RGeoServer
           when 'coverage'
             return RGeoServer::Coverage.new @catalog, :workspace => workspace, :coverage_store => store, :name => name
           when 'featureType'
-            ap({:catalog => @catalog, :workspace => workspace, :data_store => store, :name => name})
+            ap({:catalog => @catalog, :workspace => workspace, :data_store => store, :name => name}) if $DEBUG
             begin
               ft = RGeoServer::FeatureType.new @catalog, :workspace => workspace, :data_store => store, :name => name
-              ap({:featureType => ft, :route => ft.route})
+              ap({:featureType => ft, :route => ft.route}) if $DEBUG
             rescue Exception => e
-              ap({:errormsg => "#{e}", :error => e, :trace => e.backtrace})
+              ap({:errormsg => "#{e}", :error => e, :trace => e.backtrace}) if $DEBUG
             end
             
             return ft
@@ -157,11 +162,11 @@ module RGeoServer
 
     # TODO: Simplify if necessary with "/layers/<l>/styles[.<format>]", as specified in the API
     def get_default_style &block
-      self.class.list Style, @catalog, @default_style, {:layer => self}, check_remote = false, &block
+      self.class.list Style, @catalog, @default_style, {:layer => self}, false, &block
     end
 
     def get_alternate_styles &block
-      self.class.list Style, @catalog, @alternate_styles, {:layer => self}, check_remote = false, &block
+      self.class.list Style, @catalog, @alternate_styles, {:layer => self}, false, &block
     end
 
     def profile_xml_to_hash profile_xml
@@ -190,7 +195,7 @@ module RGeoServer
           "store" => store,
           "workspace" => workspace
         },
-        "metadata" => doc.xpath('//metadata/entry').inject({}){ |h, e| h.merge(e['key']=> e.text.to_s) }
+        "metadata" => doc.xpath('//metadata/entry').inject({}){ |h2, e| h2.merge(e['key']=> e.text.to_s) }
       }.freeze
       h
     end
@@ -219,6 +224,8 @@ module RGeoServer
     #    :threadCount => 1
     #  }
     #  > lyr.seed :issue, options
+    #
+    # @see http://geowebcache.org/docs/current/rest/
 
     # @param[String] operation
     # @option operation[Symbol] :issue seed
@@ -230,16 +237,25 @@ module RGeoServer
       sub_path = "seed/#{prefixed_name}.xml"
       case op
       when :issue
-        @catalog.do_url sub_path, :post, build_seed_request(:seed, options), {},  @catalog.gwc_client
+        @catalog.do_url sub_path, :post, _build_seed_request(:seed, options), {},  @catalog.gwc_client
       when :truncate
-        @catalog.do_url sub_path, :post, build_seed_request(:truncate, options), {}, @catalog.gwc_client
+        @catalog.do_url sub_path, :post, _build_seed_request(:truncate, options), {}, @catalog.gwc_client
       when :status
         raise NotImplementedError, "#{op}"
       end
     end
 
-    # @param[Hash] options for seed message
-    def build_seed_request operation, options
+    private
+    # @param[Hash] options for seed message, requiring
+    #  options[:srs][:number]
+    #  options[:bounds][:coords]
+    #  options[:gridSetId]
+    #  options[:zoomStart]
+    #  options[:zoomStop]
+    #  options[:gridSetId]
+    #  options[:gridSetId]
+    #
+    def _build_seed_request operation, options
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.seedRequest {
           xml.name prefixed_name
@@ -258,9 +274,11 @@ module RGeoServer
 
           xml.type_ operation
 
-          [:gridSetId, :zoomStart, :zoomStop, :format, :threadCount].each { |p|
+          [:gridSetId, :zoomStart, :zoomStop, :threadCount].each { |p|
             eval "xml.#{p.to_s} options[p]" unless options[p].nil?
           }
+          
+          xml.format_ options[:tileFormat] unless options[:tileFormat].nil?
 
           xml.parameters {
             options[:parameters].each_pair { |k,v|
@@ -272,6 +290,7 @@ module RGeoServer
           } if options[:parameters].is_a?(Hash)
         }
       end
+      ap({:build_seed_request => builder.doc}) if $DEBUG
       return builder.doc.to_xml
     end
   end

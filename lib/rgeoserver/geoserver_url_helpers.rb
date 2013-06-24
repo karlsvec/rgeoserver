@@ -72,7 +72,7 @@ module RGeoServer
       new_base = base.collect {|k,v| v.nil?? "#{k}" : "#{k}/#{v}"}.join('/').to_s
       new_base = new_base.gsub(%r{/$}, '')
       
-      raise GeoServerArgumentError, "Invalid REST URI syntax: #{new_base}" unless URI_REGEX.each.select {|r| r.match(new_base)}.size > 0
+      raise GeoServerArgumentError, "Invalid REST URI syntax: #{new_base} from #{base}" unless URI_REGEX.each.select {|r| r.match(new_base)}.size > 0
       
       new_base += ".#{format}"
       if not options.empty?

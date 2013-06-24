@@ -260,7 +260,7 @@ describe "Integration test against a GeoServer instance", :integration => true d
         :srs => {:number => 4326 },
         :zoomStart => 1,
         :zoomStop => 12,
-        :format => 'image/png',
+        :tileFormat => 'image/png',
         :threadCount => 1
       }
       lyr.seed :issue, options
@@ -273,7 +273,7 @@ describe "Integration test against a GeoServer instance", :integration => true d
         :srs => {:number => 4326 },
         :zoomStart => 0,
         :zoomStop => 2,
-        :format => 'image/png',
+        :tileFormat => 'image/png',
         :threadCount => 1,
         :bounds => {
           :coords => [

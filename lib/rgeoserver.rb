@@ -39,5 +39,8 @@ module RGeoServer
 
   class GeoServerInvalidRequest < RGeoServerError
   end
+  
+  class GeoServerArgumentError < RGeoServerError
+  end
 
 end
