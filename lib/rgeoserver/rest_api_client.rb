@@ -1,6 +1,6 @@
 require 'logger'
-$logger = Logger.new(STDOUT)
-$logger.level = Logger::DEBUG
+$logger = Logger.new(STDERR)
+$logger.level = Logger::INFO
 
 module RGeoServer
   module RestApiClient
@@ -12,23 +12,32 @@ module RGeoServer
     # @param [Hash] c configuration 
     # return <RestClient::Resource>
     def rest_client c    
-      RestClient::Resource.new(c[:url], :user => c[:user], :password => c[:password], :headers => c[:headers])
+      RestClient::Resource.new(c[:url], 
+          :user => c[:user], 
+          :password => c[:password], 
+          :headers => c[:headers], 
+          :timeout => (c[:timeout] || 300).to_i,
+          :open_timeout => (c[:open_timeout] || 60).to_i)
     end
 
+    # @return [RestClient] cached or new client
     def client config = {}
-      @client ||= rest_client(self.config.merge(config))
+      @client ||= rest_client(self.config[:restclient].merge(config))
     end
 
+    # @return [RestClient] cached or new client
     def gwc_client config = {}
-      c = self.config.merge(config)
-      if c[:geowebcache_url] and c[:geowebcache_url] != 'builtin'
-        c[:url] = c[:geowebcache_url]
-      else
-        c[:url] = c[:url].gsub(%r{/rest$}, '/gwc/rest') # switch to built-in GeoServer GWC
+      unless @gwc_client.is_a? RestClient::Resource
+        c = self.config.merge(config)
+        if c[:geowebcache_url] and c[:geowebcache_url] != 'builtin'
+          c[:url] = c[:geowebcache_url]
+        else
+          c[:url] = c[:url].gsub(%r{/rest$}, '/gwc/rest') # switch to built-in GeoServer GWC
+        end
+        @gwc_client = rest_client(c)
       end
-      @gwc_client ||= rest_client(c)
+      @gwc_client
     end
-
 
     def headers format
       sym = :xml || format.to_sym
