@@ -37,13 +37,12 @@ module RGeoServer
     end
 
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.workspace { 
           xml.enabled @enabled if enabled_changed?
           xml.name @name 
         }
-      end
-      return builder.doc.to_xml 
+      end.doc.to_xml
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -56,18 +55,20 @@ module RGeoServer
       @route = route
     end
 
-    def data_stores &block
-      self.class.list DataStore, @catalog, profile['dataStores'], {:workspace => self}, true, &block
+    # @param [Class] klass one of DataStore, CoverageStore, or WmsStore
+    def each klass = DataStore, &block
+      case klass
+      when DataStore
+        self.class.list DataStore, @catalog, profile['dataStores'], {:workspace => self}, true, &block
+      when CoverageStore
+        self.class.list CoverageStore, @catalog, profile['coverageStores'], {:workspace => self}, true, &block
+      when WmsStore
+        self.class.list WmsStore, @catalog, profile['wmsStores'], {:workspace => self}, true, &block
+      else
+        raise ArgumentError, "Unknown iteration class: #{klass}"
+      end
     end
   
-    def coverage_stores &block
-      self.class.list CoverageStore, @catalog, profile['coverageStores'], {:workspace => self}, true, &block
-    end
-
-    def wms_stores &block
-      self.class.list WmsStore, @catalog, profile['wmsStores'], {:workspace => self}, true, &block
-    end
-
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml 
       h = {
@@ -93,11 +94,5 @@ module RGeoServer
        }
       h  
     end
-
-    private
-    def each_store klass
-      list(klass, @catalog, profile[klass.root], {:workspace => self}, true) {|x| yield x}
-    end
-
   end
 end 

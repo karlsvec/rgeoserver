@@ -1,23 +1,19 @@
-require 'logger'
-$logger = Logger.new(STDERR)
-$logger.level = Logger::INFO
-
+require 'uri'
 module RGeoServer
   module RestApiClient
-
     include RGeoServer::GeoServerUrlHelpers
     include ActiveSupport::Benchmarkable
 
     # Instantiates a rest client with passed configuration
-    # @param [Hash] c configuration 
-    # return [RestClient::Resource]
+    # @param [Hash] c configuration
+    # @return [RestClient::Resource]
+    # @yield [URI::InvalidURIError] if c[:url] is invalid
     def rest_client c
       ap({:rest_client => c}) if $DEBUG
-      raise ArgumentError, "#rest_client requires :url" if c[:url].nil?
-      RestClient::Resource.new(c[:url], 
-          :user => c[:user], 
-          :password => c[:password], 
-          :headers => c[:headers], 
+      RestClient::Resource.new(URI(c[:url]).normalize.to_s,
+          :user => c[:user],
+          :password => c[:password],
+          :headers => c[:headers],
           :timeout => (c[:timeout] || 300).to_i,
           :open_timeout => (c[:open_timeout] || 60).to_i)
     end
@@ -41,67 +37,88 @@ module RGeoServer
       @gwc_client
     end
 
-    def headers format
-      sym = :xml || format.to_sym
-      {:accept => sym, :content_type=> sym}
+    def headers format = :xml
+      {
+        :accept => format.to_sym,
+        :content_type => format.to_sym
+      }
     end
 
     # Search a resource in the catalog
     # @param [OrderedHash] what
     # @param [Hash] options
+    # @return [RestClient::Response] XML response
     def search what, options = {}
       h = options.delete(:headers) || headers(:xml)
-      resources = client[url_for(what, options)]
-      resources.options[:headers] = h
+      request = client[url_for(what, options)]
+      request.options[:headers] = h
       begin
-        ap({ :func => { :search => what }, :request => resources }) if $DEBUG
-        return resources.get
+        ap({ :func => { :search => what }, :request => request }) if $DEBUG
+        return request.get
       rescue RestClient::InternalServerError => e
         $logger.error e.response
         $logger.flush if $logger.respond_to? :flush
-        raise GeoServerInvalidRequest, "Error listing #{what.inspect}. See $logger for details"
+        raise GeoServerInvalidRequest, "search failed for #{what}: #{e}"
       end
     end
 
-    # Do an action on an arbitrary URL path within the catalog 
-    # Default method is GET 
-    # @param [String] sub_url 
-    # @param [String] method 
-    # @param [String] data payload 
-    # @param [Hash] options for request 
-    def do_url sub_url, method = :get, data = nil, options = {}, client = client
-      sub_url.slice! client.url
-      fetcher = client[sub_url] 
-      fetcher.options.merge(options)
+    # Do an action on an arbitrary URL path within the catalog
+    # Default method is GET
+    # @param [String] sub_url
+    # @param [String] method
+    # @param [String] data payload
+    # @param [Hash] options for request
+    # @return [RestClient::Response] XML response
+    def do_url sub_url, method = :get, data = nil, options = {}
+      sub_url.slice! client.url # remove prefixed URL
+      fetcher = client[sub_url]
+      fetcher.options.merge!(options)
       begin
-        return fetcher.get if method == :get  
-        fetcher.send method, data 
-      rescue RestClient::InternalServerError => e 
-        $logger.error e.response 
-        $logger.flush if $logger.respond_to? :flush 
-        raise GeoServerInvalidRequest, "Error fetching URL: #{sub_url}. See $logger for details" 
-      end 
-    end 
+        case method
+        when :delete
+          fetcher.delete  
+        when :get
+          fetcher.get
+        when :put
+          fetcher.put data
+        when :post
+          fetcher.post data
+        else
+          raise GeoServerArgumentError, "Invalid method type for do_url: #{method}"
+        end
+      rescue RestClient::InternalServerError => e
+        $logger.error e.response
+        $logger.flush if $logger.respond_to? :flush
+        raise GeoServerInvalidRequest, "do_url failed for #{sub_url}: #{e}"
+      end
+    end
 
     # Add resource to the catalog
     # @param [String] what
     # @param [String] message
     # @param [Symbol] method
     # @param [Hash] options
-    def add what, message, method, options = {}
+    # @return [RestClient::Response] XML response
+    def add what, message, method = :put, options = {}
       h = options.delete(:headers) || headers(:xml)
       request = client[url_for(what, options)]
       request.options[:headers] = h
-      $logger.debug "Adding: \n #{message}"
-      begin 
+      $logger.debug "Adding: #{message}"
+      begin
         ap({:add_request => request, :add_message => Nokogiri::XML(message)}) if $DEBUG
-        return request.send method, message
+        case method
+        when :put
+          request.put message
+        when :post
+          request.post message
+        else
+          raise GeoServerArgumentError, "Invalid method type for add: #{method}"
+        end
       rescue RestClient::InternalServerError => e
         $logger.error e.response
         $logger.flush if $logger.respond_to? :flush
-        raise GeoServerInvalidRequest, "Error adding #{what.inspect}. See logger for details"
+        raise GeoServerInvalidRequest, "add failed for #{what}: #{e}"
       end
-      
     end
 
     # Modify resource in the catalog
@@ -109,35 +126,44 @@ module RGeoServer
     # @param [String] message
     # @param [Symbol] method
     # @param [Hash] options
-    def modify what, message, method, options = {}
+    # @return [RestClient::Response] XML response
+    def modify what, message, method = :put, options = {}
       h = options.delete(:headers) || headers(:xml)
       request = client[url_for(what, options)]
       request.options[:headers] = h
-      $logger.debug "Modifying: \n #{message}"
+      $logger.debug "Modifying: #{message}"
       begin
         ap({:modify_request => request, :modify_message => Nokogiri::XML(message)}) if $DEBUG
-        return request.send method, message
+        case method
+        when :put
+          request.put message
+        when :post
+          request.post message
+        else
+          raise GeoServerArgumentError, "Invalid method type for modify: #{method}"
+        end
       rescue RestClient::InternalServerError => e
         $logger.error e.response
         $logger.flush if $logger.respond_to? :flush
-        raise GeoServerInvalidRequest, "Error modifying #{what.inspect}. See $logger for details"
+        raise GeoServerInvalidRequest, "modify failed for #{what}: #{e}"
       end
-      
+
     end
 
     # Purge resource from the catalog. Options can include recurse=true or false
     # @param [OrderedHash] what
     # @param [Hash] options
+    # @return [RestClient::Response] XML response
     def purge what, options
       request = client[url_for(what, options)]
-      $logger.debug "Purge: \n #{request}"
+      $logger.debug "Purging: #{what}"
       begin
         ap({:purge_request => request}) if $DEBUG
         return request.delete
-      rescue RestClient::InternalServerError => e 
+      rescue RestClient::InternalServerError => e
         $logger.error e.response
         $logger.flush if $logger.respond_to? :flush
-        raise GeoServerInvalidRequest, "Error deleting #{what.inspect}. See $logger for details"
+        raise GeoServerInvalidRequest, "purge failed for #{what}: #{e}"
       end
     end
 

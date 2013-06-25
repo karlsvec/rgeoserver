@@ -11,7 +11,6 @@ module RGeoServer
         )
       )
     )
-
 end
 
 

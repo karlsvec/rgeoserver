@@ -148,7 +148,7 @@ module RGeoServer
       def profile
         unless @profile
           begin
-            self.profile = @catalog.search @route => @name
+            self.profile = @catalog.search @route => @name # use profile= method
             @new = false
           rescue RestClient::ResourceNotFound # The resource is new
             @profile = {}

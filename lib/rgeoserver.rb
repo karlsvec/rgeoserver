@@ -5,6 +5,10 @@ require 'restclient'
 require 'nokogiri'
 require 'time'
 
+require 'logger'
+$logger = Logger.new(STDERR)
+$logger.level = Logger::INFO
+
 # RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface.
 module RGeoServer
   require 'rgeoserver/version'
