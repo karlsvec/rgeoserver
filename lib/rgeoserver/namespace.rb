@@ -9,8 +9,8 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    @@route = "namespaces"
-    @@resource_name = "namespace"
+    @@route = 'namespaces'
+    @@resource_name = 'namespace'
 
     def self.resource_name
       @@resource_name
@@ -29,13 +29,12 @@ module RGeoServer
     end
 
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.namespace { 
           xml.prefix @name 
           xml.uri @uri
         }
-      end
-      return builder.doc.to_xml 
+      end.doc.to_xml
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -51,11 +50,10 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml 
-      h = {
+      {
         'name' => doc.at_xpath('//namespace/prefix/text()').to_s,
         'uri' => doc.at_xpath('//namespace/uri/text()').to_s
       }.freeze
-      h  
     end
 
   end

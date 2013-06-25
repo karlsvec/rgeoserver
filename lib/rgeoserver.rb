@@ -14,24 +14,24 @@ module RGeoServer
   require 'rgeoserver/version'
   require 'rgeoserver/config'
 
-  autoload :Catalog,              "rgeoserver/catalog"
-  autoload :Coverage,             "rgeoserver/coverage"
-  autoload :CoverageStore,        "rgeoserver/coveragestore"
-  autoload :DataStore,            "rgeoserver/datastore"
-  autoload :FeatureType,          "rgeoserver/featuretype"
-  autoload :GeoServerUrlHelpers,  "rgeoserver/geoserver_url_helpers"
-  autoload :Layer,                "rgeoserver/layer"
-  autoload :LayerGroup,           "rgeoserver/layergroup"
-  autoload :Namespace,            "rgeoserver/namespace"
-  autoload :ResourceInfo,         "rgeoserver/resource"
-  autoload :RestApiClient,        "rgeoserver/rest_api_client"
-  autoload :Style,                "rgeoserver/style"
-  autoload :WmsStore,             "rgeoserver/wmsstore"
-  autoload :Workspace,            "rgeoserver/workspace"
+  autoload :Catalog,              'rgeoserver/catalog'
+  autoload :Coverage,             'rgeoserver/coverage'
+  autoload :CoverageStore,        'rgeoserver/coveragestore'
+  autoload :DataStore,            'rgeoserver/datastore'
+  autoload :FeatureType,          'rgeoserver/featuretype'
+  autoload :GeoServerUrlHelpers,  'rgeoserver/geoserver_url_helpers'
+  autoload :Layer,                'rgeoserver/layer'
+  autoload :LayerGroup,           'rgeoserver/layergroup'
+  autoload :Namespace,            'rgeoserver/namespace'
+  autoload :ResourceInfo,         'rgeoserver/resource'
+  autoload :RestApiClient,        'rgeoserver/rest_api_client'
+  autoload :Style,                'rgeoserver/style'
+  autoload :WmsStore,             'rgeoserver/wmsstore'
+  autoload :Workspace,            'rgeoserver/workspace'
 
-  autoload :BoundingBox,          "rgeoserver/utils/boundingbox"
-  autoload :Metadata,             "rgeoserver/utils/metadata"
-  autoload :ShapefileInfo,        "rgeoserver/utils/shapefile_info"
+  autoload :BoundingBox,          'rgeoserver/utils/boundingbox'
+  autoload :Metadata,             'rgeoserver/utils/metadata'
+  autoload :ShapefileInfo,        'rgeoserver/utils/shapefile_info'
 
   # @return [Catalog] the default GeoServer Catalog instance
   def self.catalog

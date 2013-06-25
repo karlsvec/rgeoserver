@@ -9,8 +9,9 @@ module RGeoServer
     # @return [RestClient::Resource]
     # @yield [URI::InvalidURIError] if c[:url] is invalid
     def rest_client c
-      ap({:rest_client => c}) if $DEBUG
-      RestClient::Resource.new(URI(c[:url]).normalize.to_s,
+      ap({ :rest_client => c }) if $DEBUG
+      RestClient::Resource.new(
+          URI(c[:url]).normalize.to_s,
           :user => c[:user],
           :password => c[:password],
           :headers => c[:headers],
@@ -39,8 +40,8 @@ module RGeoServer
 
     def headers format = :xml
       {
-        :accept => format.to_sym,
-        :content_type => format.to_sym
+          :accept => format.to_sym,
+          :content_type => format.to_sym
       }
     end
 
@@ -75,16 +76,16 @@ module RGeoServer
       fetcher.options.merge!(options)
       begin
         case method
-        when :delete
-          fetcher.delete  
-        when :get
-          fetcher.get
-        when :put
-          fetcher.put data
-        when :post
-          fetcher.post data
-        else
-          raise GeoServerArgumentError, "Invalid method type for do_url: #{method}"
+          when :delete
+            fetcher.delete
+          when :get
+            fetcher.get
+          when :put
+            fetcher.put data
+          when :post
+            fetcher.post data
+          else
+            raise GeoServerArgumentError, "Invalid method type for do_url: #{method}"
         end
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -105,14 +106,14 @@ module RGeoServer
       request.options[:headers] = h
       $logger.debug "Adding: #{message}"
       begin
-        ap({:add_request => request, :add_message => Nokogiri::XML(message)}) if $DEBUG
+        ap({ :add_request => request, :add_message => Nokogiri::XML(message) }) if $DEBUG
         case method
-        when :put
-          request.put message
-        when :post
-          request.post message
-        else
-          raise GeoServerArgumentError, "Invalid method type for add: #{method}"
+          when :put
+            request.put message
+          when :post
+            request.post message
+          else
+            raise GeoServerArgumentError, "Invalid method type for add: #{method}"
         end
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -133,14 +134,14 @@ module RGeoServer
       request.options[:headers] = h
       $logger.debug "Modifying: #{message}"
       begin
-        ap({:modify_request => request, :modify_message => Nokogiri::XML(message)}) if $DEBUG
+        ap({ :modify_request => request, :modify_message => Nokogiri::XML(message) }) if $DEBUG
         case method
-        when :put
-          request.put message
-        when :post
-          request.post message
-        else
-          raise GeoServerArgumentError, "Invalid method type for modify: #{method}"
+          when :put
+            request.put message
+          when :post
+            request.post message
+          else
+            raise GeoServerArgumentError, "Invalid method type for modify: #{method}"
         end
       rescue RestClient::InternalServerError => e
         $logger.error e.response
@@ -158,7 +159,7 @@ module RGeoServer
       request = client[url_for(what, options)]
       $logger.debug "Purging: #{what}"
       begin
-        ap({:purge_request => request}) if $DEBUG
+        ap({ :purge_request => request }) if $DEBUG
         return request.delete
       rescue RestClient::InternalServerError => e
         $logger.error e.response

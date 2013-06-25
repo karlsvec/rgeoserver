@@ -13,19 +13,19 @@ module RGeoServer
     def self.epsilon= value
       @@epsilon = value
     end
-    
+
     # @param [Array] a in [minx, miny, maxx, maxy]
     def self.from_a a
       self.class.new Hash.new('minx' => a[0].to_f,
                               'miny' => a[1].to_f,
                               'maxx' => a[2].to_f,
                               'maxy' => a[3].to_f)
-        
+
     end
 
     def initialize options = {}
       reset
-      if ['minx', 'miny', 'maxx', 'maxy'].all? {|k| options.include?(k)}
+      if ['minx', 'miny', 'maxx', 'maxy'].all? { |k| options.include?(k) }
         add options['minx'].to_f, options['miny'].to_f # SW
         add options['maxx'].to_f, options['maxx'].to_f # NE
       end
@@ -39,7 +39,7 @@ module RGeoServer
     def << point
       add point[0], point[1]
     end
-    
+
     def add x, y
       if @empty
         @minx = @maxx = x
@@ -75,19 +75,19 @@ module RGeoServer
     def constrict rate = @@epsilon
       expand(-rate)
     end
-    
+
     def width
       maxx - minx
     end
-    
+
     def height
       maxy - miny
     end
-    
+
     def area
       width * height
     end
-    
+
     # @return true if bounding box has non-zero area
     def valid?
       area > 0
@@ -96,23 +96,23 @@ module RGeoServer
     def to_geometry
       factory = RGeo::Cartesian::Factory.new
 
-      point_min, point_max = unless [minx, miny] == [maxx, maxy]
-        [factory.point(minx, miny), factory.point(maxx, maxy)]
-      else
-        [factory.point(minx - @@epsilon, miny - @@epsilon),
-         factory.point(maxx + @@epsilon, maxy + @@epsilon)]
-      end
+      point_min, point_max = if [minx, miny] == [maxx, maxy]
+                               [factory.point(minx - @@epsilon, miny - @@epsilon),
+                                factory.point(maxx + @@epsilon, maxy + @@epsilon)]
+                             else
+                               [factory.point(minx, miny), factory.point(maxx, maxy)]
+                             end
 
       line_string = factory.line_string [point_min, point_max]
       line_string.envelope
     end
-    
+
     def to_h
       {
-        :minx => minx,
-        :miny => miny,
-        :maxx => maxx,
-        :maxy => maxy
+          :minx => minx,
+          :miny => miny,
+          :maxx => maxx,
+          :maxy => maxy
       }
     end
 

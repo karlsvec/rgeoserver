@@ -11,3 +11,4 @@ Gemfile.lock
 .swp
 .swo
 *.log
+.idea

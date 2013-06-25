@@ -30,13 +30,13 @@ module RGeoServer
     def workspace name
       Workspace.new self, :name => name
     end
-    
+
     # @param name [String] name
     # @return [RGeoServer::Layer]
     def layer name
       Layer.new self, :name => name
     end
-    
+
     # @param name [String] name
     # @return [RGeoServer::Style]
     def style name
@@ -47,22 +47,22 @@ module RGeoServer
     # @yield [Workspace,Layer,Style]
     def each klass = Workspace
       doc = Nokogiri::XML(
-        case klass # dispatch search
-        when Workspace
-          search :workspaces => nil
-        when Layer
-          search :layers => nil
-        when Style
-          search :styles => nil
-        else
-          raise ArgumentError, "Invalid klass for each method: #{klass}"
-        end
+          case klass # dispatch search
+            when Workspace
+              search :workspaces => nil
+            when Layer
+              search :layers => nil
+            when Style
+              search :styles => nil
+            else
+              raise ArgumentError, "Invalid klass for each method: #{klass}"
+          end
       )
       doc.xpath(klass.root_xpath + '/name/text()').each do |name|
         yield klass.new self, :name => name.to_s.strip
       end
     end
-    
+
     # @return [RGeoServer::Workspace] catalog.workspace('default')
     def default_workspace
       workspace 'default'
