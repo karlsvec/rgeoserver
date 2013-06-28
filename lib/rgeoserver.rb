@@ -1,4 +1,5 @@
 require 'active_model'
+require 'active_resource'
 require 'yaml'
 require 'confstruct'
 require 'restclient'
@@ -24,6 +25,7 @@ module RGeoServer
   autoload :LayerGroup,           'rgeoserver/layergroup'
   autoload :Namespace,            'rgeoserver/namespace'
   autoload :ResourceInfo,         'rgeoserver/resource'
+  autoload :GeoServerResource,    'rgeoserver/resource'
   autoload :RestApiClient,        'rgeoserver/rest_api_client'
   autoload :Style,                'rgeoserver/style'
   autoload :WmsStore,             'rgeoserver/wmsstore'

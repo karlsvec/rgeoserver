@@ -3,3 +3,4 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'rgeoserver'
 require 'rspec'
 require 'equivalent-xml'
+require 'awesome_print'

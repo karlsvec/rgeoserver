@@ -1,5 +1,12 @@
 module RGeoServer
 
+  class GeoServerResource < ActiveResource::Base
+    self.site = RGeoServer::Config.geoserver.url
+    self.user = RGeoServer::Config.geoserver.user
+    self.password = RGeoServer::Config.geoserver.password
+    self.format = ActiveResource::Formats::XmlFormat
+  end
+
   class ResourceInfo
 
     include ActiveModel::Dirty
