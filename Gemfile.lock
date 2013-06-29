@@ -126,6 +126,7 @@ GEM
     spoon (0.0.4)
       ffi
     unicode-display_width (0.1.1)
+    version_bumper (0.3.0)
     wirb (1.0.1)
       paint
     yard (0.8.6.2)
@@ -146,4 +147,5 @@ DEPENDENCIES
   rgeoserver!
   rspec
   shoulda
+  version_bumper
   yard
