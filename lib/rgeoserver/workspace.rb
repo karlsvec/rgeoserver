@@ -1,4 +1,4 @@
 module RGeoServer
-  class Workspace < GeoServerResource
+  class Workspace < Resource
   end
 end 

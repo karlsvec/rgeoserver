@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'irbtools'
   s.add_development_dependency 'jettywrapper'
   s.add_development_dependency 'pry'
+  s.add_development_dependency 'rails', '~> 3.2.0'
   s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'shoulda'

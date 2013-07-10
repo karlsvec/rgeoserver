@@ -15,8 +15,8 @@ describe RGeoServer::Workspace do
     %w{alpha bravo charlie delta}.each do |k|
       w = @c.workspace k
       w.is_a?(RGeoServer::Workspace).should == true
+      w.respond_to?(:name).should == true
       w.name.should == k
     end
   end
-  
 end 
