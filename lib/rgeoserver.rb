@@ -31,9 +31,9 @@ module RGeoServer
   autoload :WmsStore,             'rgeoserver/wmsstore'
   autoload :Workspace,            'rgeoserver/workspace'
 
-  autoload :BoundingBox,          'rgeoserver/utils/boundingbox'
+  # autoload :BoundingBox,          'rgeoserver/utils/boundingbox'
   autoload :Metadata,             'rgeoserver/utils/metadata'
-  autoload :ShapefileInfo,        'rgeoserver/utils/shapefile_info'
+  # autoload :ShapefileInfo,        'rgeoserver/utils/shapefile_info'
 
   # @return [Catalog] the default GeoServer Catalog instance
   def self.catalog

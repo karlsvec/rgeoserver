@@ -1,16 +1,12 @@
 PATH
   remote: .
   specs:
-    rgeoserver (0.7.0.alpha1)
-      activemodel (~> 3.2.0)
+    rgeoserver (0.7.0.alpha9)
       activeresource (~> 3.2.0)
-      activesupport (~> 3.2.0)
       confstruct (~> 0.2)
       mime-types (~> 1.23)
       nokogiri (~> 1.6)
       rest-client (~> 1.6)
-      rgeo (~> 0.3)
-      rgeo-shapefile (~> 0.2)
       rubyzip (~> 0.9)
 
 GEM
@@ -37,8 +33,6 @@ GEM
     coderay (1.0.9)
     columnize (0.3.6)
     confstruct (0.2.5)
-    dbf (2.0.4)
-      fastercsv (~> 1.5.4)
     debugger (1.6.0)
       columnize (>= 0.3.1)
       debugger-linecache (~> 1.2.0)
@@ -52,7 +46,6 @@ GEM
     fancy_irb (0.7.3)
       paint (>= 0.8.1)
       unicode-display_width (>= 0.1.1)
-    fastercsv (1.5.5)
     ffi (1.9.0)
     g (1.7.2)
     hirb (0.7.1)
@@ -103,10 +96,6 @@ GEM
     rake (10.1.0)
     rest-client (1.6.7)
       mime-types (>= 1.16)
-    rgeo (0.3.20)
-    rgeo-shapefile (0.2.3)
-      dbf (>= 1.7.0)
-      rgeo (>= 0.3.3)
     rspec (2.13.0)
       rspec-core (~> 2.13.0)
       rspec-expectations (~> 2.13.0)

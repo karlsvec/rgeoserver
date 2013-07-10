@@ -1,16 +1,12 @@
 == RGeoServer
 
-RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface. 
+RGeoServer is a Ruby client for GeoServer's REST catalog interfaces, and provides a
+Rails model abstraction for GeoServer resources.
 
 Requirements:
-* {GeoServer}[http://geoserver.org] 2.1.3 or later.
 * Ruby 1.9.3
-
-It provides primitive Ruby model abstraction.
-
-== Documentation
-
-See the {GeoServer REST Configuration API Reference}[http://docs.geoserver.org/stable/en/user/rest/index.html]
+* ActiveResource
+* {GeoServer}[http://geoserver.org] 2.3 or later.
 
 == Installation 
 
@@ -111,12 +107,14 @@ or
 * {OSGeo The Open Source Geospatial Foundation}[http://www.osgeo.org]
 * {GeoServer}[http://geoserver.org]
   * {Catalog design}[http://bit.ly/JrX1J8]
+  * {REST Configuration API Reference}[http://docs.geoserver.org/stable/en/user/rest/index.html]
 * {GeoTools}[http://geotools.org/]
 * Implementation in other languages: 
   * Python: {gsconfig.py}[https://github.com/dwins/gsconfig.py]
 
 == Release History
 
+- <b>v0.7</b> - Major rewrite to use ActiveResource as platform
 - <b>v0.6</b> - Major update with keywords, YAML config, REST API, unit testing and cleanup
 - <b>v0.5</b> - Initial alpha release
 
