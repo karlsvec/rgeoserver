@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rgeoserver (0.7.0.alpha9)
+    rgeoserver (0.7.0.alpha10)
       activeresource (~> 3.2.0)
       confstruct (~> 0.2)
       mime-types (~> 1.23)
