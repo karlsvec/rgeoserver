@@ -100,7 +100,6 @@ module RGeoServer
             else
               route = {@route => nil}
             end
-
             options = create_options.merge(options) if self.respond_to?(:create_options)
             @catalog.add(route, message, create_method, options)
             clear

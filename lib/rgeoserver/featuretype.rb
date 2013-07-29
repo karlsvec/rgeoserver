@@ -8,13 +8,14 @@ module RGeoServer
     OBJ_ATTRIBUTES = {
       :catalog => "catalog", 
       :name => "name", 
+      :native_name => "nativeName", 
       :workspace => "workspace", 
       :data_store => "data_store", 
       :enabled => "enabled", 
       :metadata => "metadata", 
       :metadata_links => "metadataLinks", 
       :title => "title", 
-      :description => "description",
+      :abstract => "abstract",
       :keywords => 'keywords',
       :native_bounds => 'native_bounds', 
       :latlon_bounds => "latlon_bounds", 
@@ -25,11 +26,12 @@ module RGeoServer
       :workspace => nil,
       :data_store => nil,
       :name => nil,
+      :native_name => nil,
       :enabled => "false",
       :metadata => {},
       :metadata_links => {},
       :title => nil,
-      :description => nil,
+      :abstract => nil,
       :keywords => [],
       :native_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
       :latlon_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
@@ -55,7 +57,6 @@ module RGeoServer
       :reproject => 'REPROJECT_TO_DECLARED',
       :keep => 'NONE'
     }
-    
 
     def self.root
       @@root
@@ -88,15 +89,16 @@ module RGeoServer
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
-          xml.name @name if new?
-          xml.enabled @enabled# if new? or enabled_changed?
-          xml.title @title# if new? or title_changed?
-          xml.abstract @description# if new? or description_changed? # XXX: geoserver requires abstract here
+          xml.nativeName @native_name.nil?? @name : @native_name if new? # on new only
+          xml.name @name
+          xml.enabled @enabled
+          xml.title @title
+          xml.abstract @abstract
           xml.keywords {
-            @keywords.each do |k|
+            @keywords.compact.uniq.each do |k|
               xml.string RGeoServer::Metadata::to_keyword(k)
             end
-          } if @keywords# and new? or keywords_changed?
+          } unless @keywords.empty?
 
           xml.metadataLinks {
             @metadata_links.each do |m|
@@ -107,7 +109,7 @@ module RGeoServer
                 xml.content m['content']
               }
             end
-          } if @metadata_links# and new? or metadata_links_changed?
+          } unless @metadata_links.empty?
           
           xml.store(:class => 'dataStore') {
             xml.name @data_store.name
@@ -119,7 +121,7 @@ module RGeoServer
             xml.maxx native_bounds['maxx'] if native_bounds['maxx']
             xml.maxy native_bounds['maxy'] if native_bounds['maxy']
             xml.crs native_bounds['crs'] if native_bounds['crs']
-          } if valid_native_bounds?
+          } if valid_native_bounds? and (new? or native_bounds_changed?)
 
           xml.latLonBoundingBox {
             xml.minx latlon_bounds['minx'] if latlon_bounds['minx']
@@ -127,11 +129,11 @@ module RGeoServer
             xml.maxx latlon_bounds['maxx'] if latlon_bounds['maxx']
             xml.maxy latlon_bounds['maxy'] if latlon_bounds['maxy']
             xml.crs latlon_bounds['crs'] if latlon_bounds['crs']
-          } if valid_latlon_bounds?
+          } if valid_latlon_bounds? and (new? or latlon_bounds_changed?)
 
-          xml.projectionPolicy get_projection_policy_message(projection_policy) if projection_policy
+          xml.projectionPolicy get_projection_policy_message(projection_policy) if projection_policy and new? or projection_policy_changed?
 
-          if new?
+          if new? # XXX: hard coded attributes
             xml.attributes {
               xml.attribute {
                 xml.name 'the_geom'
@@ -144,8 +146,9 @@ module RGeoServer
           end
         }
       end
-      # ap builder.doc
       @message = builder.doc.to_xml
+      ap({:message => @message})
+      @message
     end
 
 
@@ -181,15 +184,16 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      ap({:doc => doc}) if $DEBUG
-      ft = doc.xpath('/' + FeatureType::resource_name).first
+      ft = doc.at_xpath('//' + FeatureType::resource_name)
+      ap({:doc => doc, :ft => ft})# if $DEBUG
       h = {
         "name" => ft.at_xpath('name').text,
+        "native_name" => ft.at_xpath('nativeName').text,
         "title" => ft.at_xpath('title').text,
+        "abstract" => ft.at_xpath('abstract/text()'), # optional
         "keywords" => ft.xpath('keywords/string').collect { |k| k.at_xpath('.').text},
         "workspace" => @workspace.name,
         "data_store" => @data_store.name,
-        "nativeName" => ft.at_xpath('nativeName').text,
         "srs" => ft.at_xpath('srs').text,
         "native_bounds" => {
           'minx' => ft.at_xpath('nativeBoundingBox/minx').text.to_f,
@@ -206,7 +210,7 @@ module RGeoServer
           'crs' => ft.at_xpath('latLonBoundingBox/crs').text
         },
         "projection_policy" => get_projection_policy_sym(ft.at_xpath('projectionPolicy').text),
-        "metadataLinks" => ft.xpath('metadataLinks/metadataLink').collect{ |m|
+        "metadata_links" => ft.xpath('metadataLinks/metadataLink').collect{ |m|
           {
             'type' => m.at_xpath('type').text,
             'metadataType' => m.at_xpath('metadataType').text,
@@ -222,14 +226,7 @@ module RGeoServer
             'binding' => a.at_xpath('binding').text
           }
         }
-      }
-      
-      # optional parameters
-      if ft.at_xpath('abstract')
-        h["description"] = ft.at_xpath('abstract').text.strip
-      end
-      
-      # h.freeze
+      }.freeze
       ap({:h => h})# if $DEBUG
       h
     end
@@ -244,6 +241,11 @@ module RGeoServer
       bbox = RGeoServer::BoundingBox.new(latlon_bounds)
       ap bbox if $DEBUG
       not bbox.nil? and bbox.valid? and not latlon_bounds['crs'].empty?
+    end
+    
+    def update_params name_route = name
+      super(name_route)
+      # recalculate='nativebbox,latlonbbox'
     end
 
     private
