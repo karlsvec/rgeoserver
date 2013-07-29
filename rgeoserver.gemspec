@@ -39,4 +39,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency("debugger", ">=1.5")
   s.add_development_dependency("irbtools")
   s.add_development_dependency("awesome_print")
+  s.add_development_dependency("version_bumper")
+  
 end

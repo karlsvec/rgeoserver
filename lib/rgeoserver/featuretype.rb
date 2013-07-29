@@ -94,7 +94,7 @@ module RGeoServer
           xml.abstract @description# if new? or description_changed? # XXX: geoserver requires abstract here
           xml.keywords {
             @keywords.each do |k|
-              xml.keyword RGeoServer::Metadata::to_keyword(k)
+              xml.string RGeoServer::Metadata::to_keyword(k)
             end
           } if @keywords# and new? or keywords_changed?
 
@@ -181,53 +181,56 @@ module RGeoServer
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      ap doc if $DEBUG
+      ap({:doc => doc}) if $DEBUG
+      ft = doc.xpath('/' + FeatureType::resource_name).first
       h = {
-        "name" => doc.at_xpath('//name').text.strip,
-        "title" => doc.at_xpath('//title/text()').to_s,
-        "description" => doc.at_xpath('//description/text()').to_s,
-        "keywords" => doc.at_xpath('//keywords').collect { |kl|
-          {
-            'keyword' => kl.at_xpath('//string/text()').to_s
-          }
-        },
+        "name" => ft.at_xpath('name').text,
+        "title" => ft.at_xpath('title').text,
+        "keywords" => ft.xpath('keywords/string').collect { |k| k.at_xpath('.').text},
         "workspace" => @workspace.name,
         "data_store" => @data_store.name,
-        "nativeName" => doc.at_xpath('//nativeName/text()').to_s,
-        "srs" => doc.at_xpath('//srs/text()').to_s,
+        "nativeName" => ft.at_xpath('nativeName').text,
+        "srs" => ft.at_xpath('srs').text,
         "native_bounds" => {
-          'minx' => doc.at_xpath('//nativeBoundingBox/minx/text()').to_s.to_f,
-          'miny' => doc.at_xpath('//nativeBoundingBox/miny/text()').to_s.to_f,
-          'maxx' => doc.at_xpath('//nativeBoundingBox/maxx/text()').to_s.to_f,
-          'maxy' => doc.at_xpath('//nativeBoundingBox/maxy/text()').to_s.to_f,
-          'crs' => doc.at_xpath('//nativeBoundingBox/crs/text()').to_s
+          'minx' => ft.at_xpath('nativeBoundingBox/minx').text.to_f,
+          'miny' => ft.at_xpath('nativeBoundingBox/miny').text.to_f,
+          'maxx' => ft.at_xpath('nativeBoundingBox/maxx').text.to_f,
+          'maxy' => ft.at_xpath('nativeBoundingBox/maxy').text.to_f,
+          'crs' => ft.at_xpath('nativeBoundingBox/crs').text
         },
         "latlon_bounds" => {
-          'minx' => doc.at_xpath('//latLonBoundingBox/minx/text()').to_s.to_f,
-          'miny' => doc.at_xpath('//latLonBoundingBox/miny/text()').to_s.to_f,
-          'maxx' => doc.at_xpath('//latLonBoundingBox/maxx/text()').to_s.to_f,
-          'maxy' => doc.at_xpath('//latLonBoundingBox/maxy/text()').to_s.to_f,
-          'crs' => doc.at_xpath('//latLonBoundingBox/crs/text()').to_s
+          'minx' => ft.at_xpath('latLonBoundingBox/minx').text.to_f,
+          'miny' => ft.at_xpath('latLonBoundingBox/miny').text.to_f,
+          'maxx' => ft.at_xpath('latLonBoundingBox/maxx').text.to_f,
+          'maxy' => ft.at_xpath('latLonBoundingBox/maxy').text.to_f,
+          'crs' => ft.at_xpath('latLonBoundingBox/crs').text
         },
-        "projection_policy" => get_projection_policy_sym(doc.at_xpath('//projectionPolicy').text.strip),
-        "metadataLinks" => doc.xpath('//metadataLinks/metadataLink').collect{ |m|
+        "projection_policy" => get_projection_policy_sym(ft.at_xpath('projectionPolicy').text),
+        "metadataLinks" => ft.xpath('metadataLinks/metadataLink').collect{ |m|
           {
-            'type' => m.at_xpath('//type/text()').to_s,
-            'metadataType' => m.at_xpath('//metadataType/text()').to_s,
-            'content' => m.at_xpath('//content/text()').to_s
+            'type' => m.at_xpath('type').text,
+            'metadataType' => m.at_xpath('metadataType').text,
+            'content' => m.at_xpath('content').text
           }
         },
-        "attributes" => doc.xpath('//attributes/attribute').collect{ |a|
+        "attributes" => ft.xpath('attributes/attribute').collect{ |a|
           {
-            'name' => a.at_xpath('//name/text()').to_s,
-            'minOccurs' => a.at_xpath('//minOccurs/text()').to_s,
-            'maxOccurs' => a.at_xpath('//maxOccurs/text()').to_s,
-            'nillable' => a.at_xpath('//nillable/text()').to_s,
-            'binding' => a.at_xpath('//binding/text()').to_s
+            'name' => a.at_xpath('name').text,
+            'minOccurs' => a.at_xpath('minOccurs').text,
+            'maxOccurs' => a.at_xpath('maxOccurs').text,
+            'nillable' => a.at_xpath('nillable').text,
+            'binding' => a.at_xpath('binding').text
           }
         }
-      }.freeze
-      ap h if $DEBUG
+      }
+      
+      # optional parameters
+      if ft.at_xpath('abstract')
+        h["description"] = ft.at_xpath('abstract').text.strip
+      end
+      
+      # h.freeze
+      ap({:h => h})# if $DEBUG
       h
     end
 
