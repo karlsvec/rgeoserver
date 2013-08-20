@@ -147,7 +147,7 @@ module RGeoServer
         }
       end
       @message = builder.doc.to_xml
-      ap({:message => @message})
+      ap({:message => @message}) if $DEBUG
       @message
     end
 
@@ -185,7 +185,7 @@ module RGeoServer
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
       ft = doc.at_xpath('//' + FeatureType::resource_name)
-      ap({:doc => doc, :ft => ft})# if $DEBUG
+      ap({:doc => doc, :ft => ft}) if $DEBUG
       h = {
         "name" => ft.at_xpath('name').text,
         "native_name" => ft.at_xpath('nativeName').text,
@@ -227,7 +227,7 @@ module RGeoServer
           }
         }
       }.freeze
-      ap({:h => h})# if $DEBUG
+      ap({:h => h}) if $DEBUG
       h
     end
 
