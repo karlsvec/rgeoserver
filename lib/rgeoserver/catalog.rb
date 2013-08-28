@@ -9,28 +9,33 @@ module RGeoServer
   class Catalog
     # include RGeoServer::RestApiClient
     # require 'restclient'
-    
-    def search options = nil
-      raise NotImplementedError
-    end
 
-    attr_reader :config
+    attr_reader :config, :site, :user, :format
 
     # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] 
     # loaded from $RGEOSERVER_CONFIG or config/defaults.yml
-    # @param [String] options :url
-    # @param [String] options :user
-    # @param [String] options :password
+    #   :url defaults to 'http://localhost:8080/geoserver/rest'
+    #   :user
+    #   :password
+    #   :format either 'xml' or 'json'
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
-      unless config.include?(:url)
-        raise ArgumentError, "Catalog: Requires :url option: #{config}"
+      unless @config.include?(:url)
+        raise ArgumentError, "Catalog: Requires :url option: #{@config}"
       end
-      # RestClient.log = config[:logfile] || nil
+      @site = @config[:url] || 'http://localhost:8080/geoserver/rest'
+      @user = @config[:user]
+      @password = @config[:password]
+      @format = ActiveResource::Formats::XmlFormat
+      @format = ActiveResource::Formats::JsonFormat if @config[:format] == 'json'
     end
 
     def to_s
-      "Catalog: #{config[:url]}"
+      "Catalog: #{@user}@#{@site}"
+    end
+    
+    def search options = {}
+      raise NotImplementedError
     end
 
     # @param name [String] name
@@ -86,26 +91,26 @@ module RGeoServer
       # do_url 'reset', :put
     end
     
-    private
-    # List available workspaces, layers, or styles
-    # @yield [Workspace,Layer,Style]
-    def _each klass = Workspace
-      doc = Nokogiri::XML(
-          case klass # dispatch search
-          when Workspace
-            search :workspaces => nil
-          when Layer
-            search :layers => nil
-          when Style
-            search :styles => nil
-          else
-            raise ArgumentError, "Invalid klass for each method: #{klass}"
-          end
-      )
-      doc.xpath(klass.root_xpath + '/name/text()').each do |name|
-        yield klass.new self, :name => name.to_s.strip
-      end
-    end
+    # private
+    # # List available workspaces, layers, or styles
+    # # @yield [Workspace,Layer,Style]
+    # def _each klass = Workspace
+    #   doc = Nokogiri::XML(
+    #       case klass # dispatch search
+    #       when Workspace
+    #         search :workspaces => nil
+    #       when Layer
+    #         search :layers => nil
+    #       when Style
+    #         search :styles => nil
+    #       else
+    #         raise ArgumentError, "Invalid klass for each method: #{klass}"
+    #       end
+    #   )
+    #   doc.xpath(klass.root_xpath + '/name/text()').each do |name|
+    #     yield klass.new self, :name => name.to_s.strip
+    #   end
+    # end
     
   end
 end

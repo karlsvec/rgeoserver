@@ -1,22 +1,16 @@
 require 'spec_helper'
 
-describe RGeoServer::Workspace do
+describe RGeoServer::Workspace do 
+  before :all do
+    @w = RGeoServer::Workspace.find(:druid)
+    ap({:druid => @w})
+  end
+       
+  it 'name attribute' do
+    @w.name.should == 'druid'
+  end
 
-  before(:all) do
-    @c = RGeoServer.catalog
-  end
-  
-  it 'catalog' do
-    w = @c.workspace 'alpha'
-    w.catalog.should == @c
-  end
-  
-  it 'names' do
-    %w{alpha bravo charlie delta}.each do |k|
-      w = @c.workspace k
-      w.is_a?(RGeoServer::Workspace).should == true
-      w.respond_to?(:name).should == true
-      w.name.should == k
-    end
+  it 'data stores attribute' do
+    @w.dataStores.should == 'http://kurma-podd1.stanford.edu/geoserver/rest/workspaces/druid/datastores.json'
   end
 end 

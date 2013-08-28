@@ -3,15 +3,12 @@ require 'active_resource'
 module RGeoServer
 
   class Resource < ActiveResource::Base
-    self.site = RGeoServer::Config.geoserver.url || 'http://localhost:8080/geoserver/rest'
-    self.user = RGeoServer::Config.geoserver.user || 'admin'
-    self.password = RGeoServer::Config.geoserver.password || 'geoserver'
-    self.format = ActiveResource::Formats::XmlFormat
     
     attr_reader :catalog
     def initialize(catalog, attrs = nil)
-      super(attrs) unless attrs.nil?
+      super(attrs)
       @catalog = catalog
+      @name = attrs[:name] if attrs[:name]
     end
   end
 
