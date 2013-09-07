@@ -30,8 +30,8 @@ module RGeoServer
   autoload :ShapefileInfo,        "rgeoserver/utils/shapefile_info"
 
   # @return [Catalog] the default GeoServer Catalog instance
-  def self.catalog
-    @@catalog ||= RGeoServer::Catalog.new RGeoServer::Config[:geoserver]
+  def self.catalog opts = nil
+    @@catalog ||= RGeoServer::Catalog.new (opts.nil?? RGeoServer::Config[:geoserver] : opts)
   end
 
   class RGeoServerError < StandardError
