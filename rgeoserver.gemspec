@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_dependency "activesupport", "~> 3.2.14"
   s.add_dependency "confstruct", "~> 0.2.5"
   s.add_dependency "mime-types", "~> 1.24"
-  s.add_dependency "nokogiri", "~> 1.6.0"
+  s.add_dependency "nokogiri", "~> 1.5.10"
   s.add_dependency "rest-client", "~> 1.6.7"
   s.add_dependency "rgeo", "~> 0.3.20"
   s.add_dependency "rgeo-shapefile", "~> 0.2.3"
