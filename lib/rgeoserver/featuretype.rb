@@ -200,7 +200,7 @@ module RGeoServer
           'miny' => ft.at_xpath('nativeBoundingBox/miny').text.to_f,
           'maxx' => ft.at_xpath('nativeBoundingBox/maxx').text.to_f,
           'maxy' => ft.at_xpath('nativeBoundingBox/maxy').text.to_f,
-          'crs' => ft.at_xpath('nativeBoundingBox/crs').text
+          'crs' => ft.at_xpath('srs').text
         },
         "latlon_bounds" => {
           'minx' => ft.at_xpath('latLonBoundingBox/minx').text.to_f,

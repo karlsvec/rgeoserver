@@ -8,7 +8,7 @@ GIT
 PATH
   remote: .
   specs:
-    rgeoserver (0.6.4.0)
+    rgeoserver (0.6.4.1)
       activemodel (~> 3.2.14)
       activesupport (~> 3.2.14)
       confstruct (~> 0.2.5)
