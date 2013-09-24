@@ -47,8 +47,8 @@ module RGeoServer
 
     # see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
     METADATA_TYPES = {
-      'ISO19139' => 'application/vnd.iso.19139+xml',
-      'TC211' => 'application/vnd.iso.19139+xml'
+      'ISO19139' => 'text/xml',
+      'TC211' => 'text/xml'
     }
     
     # see https://github.com/geoserver/geoserver/blob/master/src/main/src/main/java/org/geoserver/catalog/ProjectionPolicy.java
