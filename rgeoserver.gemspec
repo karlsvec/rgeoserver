@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.email = ["renzo.sanchez.silva@gmail.com", "drh@stanford.edu"]
   s.summary = %q{GeoServer REST API Ruby library }
   s.description = %q{GeoServer REST API Ruby library : Requires GeoServer 2.1.3+}
-  s.homepage = "http://github.com/rnz0/rgeoserver"
+  s.homepage = "http://github.com/sul-dlss/rgeoserver"
   s.has_rdoc = true
   s.licenses = ['ALv2', 'Stanford University Libraries']
   
@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_dependency "activesupport", "~> 3.2.14"
   s.add_dependency "confstruct", "~> 0.2.5"
   s.add_dependency "mime-types", "~> 1.24"
-  s.add_dependency "nokogiri", "~> 1.5.10"
+  s.add_dependency "nokogiri", "~> 1.5"
   s.add_dependency "rest-client", "~> 1.6.7"
   s.add_dependency "rgeo", "~> 0.3.20"
   s.add_dependency "rgeo-shapefile", "~> 0.2.3"
