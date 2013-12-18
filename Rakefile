@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'bundler'
 require 'bundler/gem_tasks'
-require 'version_bumper'
+# require 'version_bumper'
 
 begin
   Bundler.setup(:default, :development)
