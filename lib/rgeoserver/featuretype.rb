@@ -4,6 +4,7 @@ module RGeoServer
   # In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store.
   # In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with
   # each feature type corresponding to a table in the database.
+  # @see https://github.com/geoserver/geoserver/blob/master/src/main/src/main/java/org/geoserver/catalog/ResourceInfo.java
   class FeatureType < ResourceInfo    
     OBJ_ATTRIBUTES = {
       :catalog => "catalog", 
@@ -16,6 +17,7 @@ module RGeoServer
       :metadata_links => "metadataLinks", 
       :title => "title", 
       :abstract => "abstract",
+      :description => "description",
       :keywords => 'keywords',
       :native_bounds => 'native_bounds', 
       :latlon_bounds => "latlon_bounds", 
@@ -32,6 +34,7 @@ module RGeoServer
       :metadata_links => {},
       :title => nil,
       :abstract => nil,
+      :description => nil,
       :keywords => [],
       :native_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
       :latlon_bounds => {'minx'=>nil, 'miny' =>nil, 'maxx'=>nil, 'maxy'=>nil, 'crs' =>nil},
@@ -94,6 +97,7 @@ module RGeoServer
           xml.enabled @enabled
           xml.title @title
           xml.abstract @abstract
+          xml.description @description
           xml.keywords {
             @keywords.compact.uniq.each do |k|
               xml.string RGeoServer::Metadata::to_keyword(k)
@@ -133,7 +137,7 @@ module RGeoServer
 
           xml.projectionPolicy get_projection_policy_message(projection_policy) if projection_policy and new? or projection_policy_changed?
 
-          if new? # XXX: hard coded attributes
+          if new? # XXX: hard coded attribute, and hardcoded to Point
             xml.attributes {
               xml.attribute {
                 xml.name 'the_geom'
@@ -141,6 +145,10 @@ module RGeoServer
                 xml.maxOccurs 1
                 xml.nillable true
                 xml.binding 'com.vividsolutions.jts.geom.Point'
+                # superclass is com.vividsolutions.jts.geom.Geometry
+                # subclasses are com.vividsolutions.jts.geom.Point, 
+                # com.vividsolutions.jts.geom.Polygon, and
+                # com.vividsolutions.jts.geom.LineString
               }
             }
           end

@@ -117,6 +117,7 @@ or
 
 == Release History
 
+- <b>v0.7.1</b> - Fixed errors with Coverage keywords and abstract/descriptions
 - <b>v0.7</b> - Major update with keywords, YAML config, REST API, unit testing and cleanup
 - <b>v0.5</b> - Initial alpha release
 

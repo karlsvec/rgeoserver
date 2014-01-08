@@ -11,6 +11,7 @@ module RGeoServer
       :name => "name", 
       :title => "title", 
       :abstract => "abstract", 
+      :description => "description", 
       :keywords => "keywords", 
       :metadata => "metadata", 
       :metadata_links => "metadataLinks" 
@@ -23,6 +24,7 @@ module RGeoServer
       :name => nil, 
       :title => nil, 
       :abstract => nil,  
+      :description => nil,  
       :keywords => [],  
       :metadata => {},  
       :metadata_links => [] 
@@ -70,7 +72,8 @@ module RGeoServer
           xml.enabled @enabled if enabled_changed? or new?
           if new?
             xml.nativeName @name
-            xml.abstract @abtract if abstract_changed?
+            xml.abstract @abstract if abstract_changed?
+            xml.description @description if description_changed?
             xml.metadataLinks {
               @metadata_links.each do |m|
                 xml.metadataLink {
@@ -82,8 +85,8 @@ module RGeoServer
             } if @metadata_links
           end
           xml.keywords {
-            @keywords.each do |k|
-              xml.keyword RGeoServer::Metadata::to_keyword(k)
+            @keywords.compact.uniq.each do |k|
+              xml.string RGeoServer::Metadata::to_keyword(k)
             end
           } if @keywords and new? or keywords_changed?
           
@@ -146,10 +149,11 @@ module RGeoServer
           'crs' => doc.at_xpath('//latLonBoundingBox/crs/text()').to_s
         },
         "abstract" => doc.at_xpath('//abstract/text()').to_s, 
+        "description" => doc.at_xpath('//description/text()').to_s, 
         "supportedFormats" => doc.xpath('//supportedFormats/string').collect{ |t| t.to_s },
         "keywords" => doc.at_xpath('//keywords').collect { |kl|
           {
-            'keyword' => kl.at_xpath('//string/text()').to_s
+            'string' => kl.at_xpath('//string/text()').to_s
           }
         },
         "metadataLinks" => doc.xpath('//metadataLinks/metadataLink').collect{ |m|
