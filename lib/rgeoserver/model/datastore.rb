@@ -95,7 +95,7 @@ module RGeoServer
 
     # @param [RGeoServer::Catalog] catalog
     # @param [RGeoServer::Workspace|String] options `:workspace`
-    # @param [String] options `:name`
+    # options `:name`
     def initialize catalog, options
       super({})
       _run_initialize_callbacks do

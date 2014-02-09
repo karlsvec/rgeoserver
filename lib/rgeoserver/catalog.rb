@@ -1,22 +1,21 @@
 module RGeoServer
   # This class represents the main class of the data model, and provides all REST APIs to GeoServer.
-  # Refer to
-  # - http://geoserver.org/display/GEOS/Catalog+Design
-  # - http://docs.geoserver.org/stable/en/user/rest/api/
+  # @see http://geoserver.org/display/GEOS/Catalog+Design
+  # @see http://docs.geoserver.org/stable/en/user/rest/api/
 
   class Catalog
     include RGeoServer::RestApiClient
 
     attr_reader :config
 
-    # @param [OrderedHash] options, if nil, uses RGeoServer::Config[:geoserver] loaded from $RGEOSERVER_CONFIG or config/defaults.yml
-    # @param [String] options :url
-    # @param [String] options :user
-    # @param [String] options :password
+    # @param [OrderedHash] options if nil, uses RGeoServer::Config[:geoserver] loaded from $RGEOSERVER_CONFIG or config/defaults.yml
+    # options :url
+    # options :user
+    # options :password
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
       unless config.include?(:url)
-        raise ArgumentError.new("Catalog: Requires :url option: #{config}") 
+        raise GeoServerArgumentError, "Catalog: Requires :url option: #{config}"
       end
       RestClient.log = config[:logfile] || nil
     end
@@ -25,18 +24,10 @@ module RGeoServer
       "Catalog: #{config[:url]}"
     end
 
-    def headers format = :xml
-      { 
-        :accept => format.to_sym, 
-        :content_type => format.to_sym
-      }
-    end
-
     #== Resources
 
     # Shortcut to ResourceInfo.list to this catalog. See ResourceInfo#list
     # @param [RGeoServer::ResourceInfo.class] klass
-    # @param [RGeoServer::Catalog] catalog
     # @param [Array<String>] names
     # @param [Hash] options
     # @param [bool] check_remote if already exists in catalog and cache it
@@ -58,7 +49,7 @@ module RGeoServer
       list Workspace.class, workspaces
     end
 
-    # @param ws [String] workspace name
+    # @param  [String] ws workspace name
     # @return [RGeoServer::Workspace]
     def get_workspace ws
       doc = Nokogiri::XML(search :workspaces => ws)
@@ -91,6 +82,7 @@ module RGeoServer
     #= Layers
 
     # List of available layers
+    # @param [Hash] options
     # @return [Array<RGeoServer::Layer>]
     def each_layer options = {}
       doc = Nokogiri::XML(self.search :layers => nil)
@@ -113,6 +105,7 @@ module RGeoServer
     #= LayerGroups
 
     # List of available layer groups
+    # @param [Hash] options
     # @return [Array<RGeoServer::LayerGroup>]
     def get_layergroups options = {}
       response = unless options[:workspace]
@@ -125,7 +118,7 @@ module RGeoServer
       list LayerGroup, layer_groups, :workspace => options[:workspace]
     end
 
-    # @param [String] layer group name
+    # @param [String] layergroup name
     # @return [RGeoServer::LayerGroup]
     def get_layergroup layergroup
       doc = Nokogiri::XML(search :layergroups => layergroup)

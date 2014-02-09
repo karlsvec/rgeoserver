@@ -1,4 +1,6 @@
+require 'confstruct'
 require 'confstruct/configuration'
+require 'yaml'
 
 # Uses config/defaults.yml or $RGEOSERVER_CONFIG from environment
 # See https://rubygems.org/gems/confstruct for details on file format

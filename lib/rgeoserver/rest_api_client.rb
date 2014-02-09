@@ -1,3 +1,5 @@
+require 'restclient'
+
 require 'logger'
 $logger = Logger.new(STDERR)
 $logger.level = Logger::INFO
@@ -9,24 +11,26 @@ module RGeoServer
     include ActiveSupport::Benchmarkable
 
     # Instantiates a rest client with passed configuration
-    # @param [Hash] c configuration 
+    # @param [Hash] config configuration 
     # return [RestClient::Resource]
-    def rest_client c
-      ap({:rest_client => c}) if $DEBUG
-      raise ArgumentError, "#rest_client requires :url" if c[:url].nil?
-      RestClient::Resource.new(c[:url], 
-          :user => c[:user], 
-          :password => c[:password], 
-          :headers => c[:headers], 
-          :timeout => (c[:timeout] || 300).to_i,
-          :open_timeout => (c[:open_timeout] || 60).to_i)
+    def rest_client config
+      ap({:rest_client => config}) if $DEBUG
+      raise GeoServerArgumentError, 'RestApiClient#rest_client requires :url' if config[:url].nil?
+      RestClient::Resource.new(config[:url], 
+          :user => config[:user], 
+          :password => config[:password], 
+          :headers => config[:headers], 
+          :timeout => (config[:timeout] || 300).to_i,
+          :open_timeout => (config[:open_timeout] || 60).to_i)
     end
 
+    # @param [Hash] config
     # @return [RestClient] cached or new client
     def client config = {}
       @client ||= rest_client(config.merge(self.config[:restclient]).merge(self.config))
     end
 
+    # @param [Hash] config
     # @return [RestClient] cached or new client
     def gwc_client config = {}
       unless @gwc_client.is_a? RestClient::Resource
@@ -41,9 +45,11 @@ module RGeoServer
       @gwc_client
     end
 
-    def headers format
-      sym = :xml || format.to_sym
-      {:accept => sym, :content_type=> sym}
+    def headers format = :xml
+      { 
+        :accept => format.to_sym, 
+        :content_type => format.to_sym
+      }
     end
 
     # Search a resource in the catalog
@@ -57,8 +63,7 @@ module RGeoServer
         ap({ :func => { :search => what }, :request => resources }) if $DEBUG
         return resources.get
       rescue RestClient::InternalServerError => e
-        $logger.error e.response
-        $logger.flush if $logger.respond_to? :flush
+        log_error e
         raise GeoServerInvalidRequest, "Error listing #{what.inspect}. See $logger for details"
       end
     end
@@ -77,8 +82,7 @@ module RGeoServer
         return fetcher.get if method == :get  
         fetcher.send method, data 
       rescue RestClient::InternalServerError => e 
-        $logger.error e.response 
-        $logger.flush if $logger.respond_to? :flush 
+        log_error e
         raise GeoServerInvalidRequest, "Error fetching URL: #{sub_url}. See $logger for details" 
       end 
     end 
@@ -97,8 +101,7 @@ module RGeoServer
         ap({:add_request => request, :add_message => Nokogiri::XML(message)}) if $DEBUG
         return request.send method, message
       rescue RestClient::InternalServerError => e
-        $logger.error e.response
-        $logger.flush if $logger.respond_to? :flush
+        log_error e
         raise GeoServerInvalidRequest, "Error adding #{what.inspect}. See logger for details"
       end
       
@@ -118,8 +121,7 @@ module RGeoServer
         ap({:modify_request => request, :modify_message => Nokogiri::XML(message)}) if $DEBUG
         return request.send method, message
       rescue RestClient::InternalServerError => e
-        $logger.error e.response
-        $logger.flush if $logger.respond_to? :flush
+        log_error e
         raise GeoServerInvalidRequest, "Error modifying #{what.inspect}. See $logger for details"
       end
       
@@ -128,18 +130,22 @@ module RGeoServer
     # Purge resource from the catalog. Options can include recurse=true or false
     # @param [OrderedHash] what
     # @param [Hash] options
-    def purge what, options
+    def purge what, options = {}
       request = client[url_for(what, options)]
       $logger.debug "Purge: \n #{request}"
       begin
         ap({:purge_request => request}) if $DEBUG
         return request.delete
       rescue RestClient::InternalServerError => e 
-        $logger.error e.response
-        $logger.flush if $logger.respond_to? :flush
+        log_error e
         raise GeoServerInvalidRequest, "Error deleting #{what.inspect}. See $logger for details"
       end
     end
-
+    
+    private
+    def log_error e
+      $logger.error e.response
+      $logger.flush if $logger.respond_to? :flush
+    end
   end
 end

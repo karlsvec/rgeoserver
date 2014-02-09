@@ -28,7 +28,7 @@ module RGeoServer
       :metadata_links => [] 
     } 
    
-    # see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
+    # @see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
     @@metadata_types = {
       'ISO19139' => 'application/vnd.iso.19139+xml',
       'TC211' => 'application/vnd.iso.19139+xml'
@@ -94,6 +94,8 @@ module RGeoServer
 
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
+    # @option options [String] :workspace required
+    # @option options [String] :coverage_store 
     def initialize catalog, options 
       super(catalog)
       _run_initialize_callbacks do

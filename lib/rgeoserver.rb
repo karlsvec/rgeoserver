@@ -1,9 +1,5 @@
 require 'active_model'
-require 'yaml'
-require 'confstruct'
-require 'restclient'
 require 'nokogiri'
-require 'time'
 
 # RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface.
 module RGeoServer
@@ -11,19 +7,20 @@ module RGeoServer
   require 'rgeoserver/config'
 
   autoload :Catalog,              "rgeoserver/catalog"
-  autoload :Coverage,             "rgeoserver/coverage"
-  autoload :CoverageStore,        "rgeoserver/coveragestore"
-  autoload :DataStore,            "rgeoserver/datastore"
-  autoload :FeatureType,          "rgeoserver/featuretype"
   autoload :GeoServerUrlHelpers,  "rgeoserver/geoserver_url_helpers"
-  autoload :Layer,                "rgeoserver/layer"
-  autoload :LayerGroup,           "rgeoserver/layergroup"
-  autoload :Namespace,            "rgeoserver/namespace"
-  autoload :ResourceInfo,         "rgeoserver/resource"
   autoload :RestApiClient,        "rgeoserver/rest_api_client"
-  autoload :Style,                "rgeoserver/style"
-  autoload :WmsStore,             "rgeoserver/wmsstore"
-  autoload :Workspace,            "rgeoserver/workspace"
+
+  autoload :Coverage,             "rgeoserver/model/coverage"
+  autoload :CoverageStore,        "rgeoserver/model/coveragestore"
+  autoload :DataStore,            "rgeoserver/model/datastore"
+  autoload :FeatureType,          "rgeoserver/model/featuretype"
+  autoload :Layer,                "rgeoserver/model/layer"
+  autoload :LayerGroup,           "rgeoserver/model/layergroup"
+  autoload :Namespace,            "rgeoserver/model/namespace"
+  autoload :ResourceInfo,         "rgeoserver/model/resource"
+  autoload :Style,                "rgeoserver/model/style"
+  autoload :WmsStore,             "rgeoserver/model/wmsstore"
+  autoload :Workspace,            "rgeoserver/model/workspace"
 
   autoload :BoundingBox,          "rgeoserver/utils/boundingbox"
   autoload :Metadata,             "rgeoserver/utils/metadata"

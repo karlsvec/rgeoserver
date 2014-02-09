@@ -1,6 +1,6 @@
 require 'rgeo'
 require 'rgeo/shapefile'
-require 'zip/zip'
+require 'zip'
 
 module RGeoServer
   class ShapefileInfo

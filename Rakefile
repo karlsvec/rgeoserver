@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'bundler'
 require 'bundler/gem_tasks'
-# require 'version_bumper'
+require 'version_bumper'
 
 begin
   Bundler.setup(:default, :development)
@@ -28,9 +28,10 @@ YARD::Rake::YardocTask.new do |t|
   t.options = ["--readme", "README.rdoc"]
 end
 
-desc "Open an irb session preloaded with this library"
-task :console do
-  sh "irb --simple-prompt -rubygems -I lib -r rgeoserver.rb"
+desc "Run console; defaults to IRB='pry'"
+task :console, :IRB do |t, args|
+  irb = args[:IRB].nil?? 'pry' : args[:IRB]
+  sh irb, "-r", "#{File.dirname(__FILE__)}/config/boot.rb"
 end
 
 desc "Execute integration tests"
