@@ -102,7 +102,7 @@ module RGeoServer
         @catalog = catalog
         workspace = options[:workspace] || 'default'
         if workspace.instance_of? String
-          @workspace = catalog.get_workspace(workspace)
+          @workspace = @catalog.get_workspace(workspace)
         elsif workspace.instance_of? Workspace
           @workspace = workspace
         else
@@ -114,8 +114,18 @@ module RGeoServer
       end
     end
 
-    def featuretypes &block
-      self.class.list FeatureType, catalog, profile['featureTypes'], {:workspace => @workspace, :data_store => self}, true, &block
+    # @yield [RGeoServer::FeatureType]
+    def featuretypes
+      doc = Nokogiri::XML(search :workspaces => @workspace.name, :datastores => @name, :featuretypes => nil)
+      doc.xpath('/featureTypes/featureType/name/text()').each do |name| 
+        yield get_featuretype(name.to_s.strip)
+      end
+    end
+
+    # @param [String] name
+    # @return [RGeoServer::FeatureType]
+    def get_featuretype name
+      FeatureType.new @catalog, :workspace => @workspace, :datastore => self, :name => name
     end
 
     def upload_file local_file, publish = {}

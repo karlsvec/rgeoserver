@@ -86,8 +86,19 @@ module RGeoServer
       end        
     end
 
+    # @param [String] workspace
+    # @yield [RGeoServer::Coverage]
     def coverages
-      yield self.class.list Coverage, @catalog, profile['coverages'], {:workspace => @workspace, :coverage_store => self}, true
+      doc = Nokogiri::XML(search :workspaces => @workspace.name, :coveragestores => @name, :coverages => nil)
+      doc.xpath('/coverages/coverage/name/text()').each do |name| 
+        yield get_coverage(name.to_s.strip)
+      end
+    end
+    
+    # @param [String] name
+    # @return [RGeoServer::Coverage]
+    def get_coverage name
+      Coverage.new @catalog, :workspace => @workspace, :coverage_store => self, :name => name
     end
 
     # <coverageStore>

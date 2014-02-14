@@ -107,9 +107,9 @@ module RGeoServer
         else
           raise "Not a valid workspace"
         end
-        coverage_store = options[:coverage_store]
+        coverage_store = options[:coveragestore]
         if coverage_store.instance_of? String
-          @coverage_store = CoverageStore.new @catalog, :workspace => @workspace, :name => coverage_store
+          @coverage_store = @workspace.get_coveragestore(coverage_store)
         elsif coverage_store.instance_of? CoverageStore
           @coverage_store = coverage_store
         else

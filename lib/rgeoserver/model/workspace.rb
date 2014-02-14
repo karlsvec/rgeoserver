@@ -1,6 +1,7 @@
 
 module RGeoServer
-  # A workspace is a grouping of data stores. More commonly known as a namespace, it is commonly used to group data that is related in some way.
+  # A workspace is a grouping of data stores. More commonly known as a namespace, 
+  # it is commonly used to group data that is related in some way.
   class Workspace < ResourceInfo
 
     OBJ_ATTRIBUTES = {
@@ -36,14 +37,14 @@ module RGeoServer
       @@route  
     end
 
+    # @return [String] XML document with workspace attributes
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.workspace { 
           xml.enabled @enabled if enabled_changed?
           xml.name @name 
         }
-      end
-      return builder.doc.to_xml 
+      end.doc.to_xml 
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -55,17 +56,39 @@ module RGeoServer
       end        
       @route = route
     end
+    
+    #= Data Stores (Vector datasets)
 
-    def data_stores &block
-      self.class.list DataStore, @catalog, profile['dataStores'], {:workspace => self}, true, &block
-    end
-  
-    def coverage_stores &block
-      self.class.list CoverageStore, @catalog, profile['coverageStores'], {:workspace => self}, true, &block
+    # @yield [RGeoServer::DataStore]
+    def datastores
+      doc = Nokogiri::XML(search :workspaces => @name, :datastores => nil)
+      doc.xpath('/dataStores/dataStore/name/text()').each do |name| 
+        yield get_datastore(name.to_s.strip)
+      end
     end
 
-    def wms_stores &block
-      self.class.list WmsStore, @catalog, profile['wmsStores'], {:workspace => self}, true, &block
+    # @param [String] name
+    # @return [RGeoServer::DataStore]
+    def get_datastore name
+      DataStore.new @catalog, :workspace => self, :name => name
+    end
+
+    #= Coverages (Raster datasets)
+
+    # @param [String] workspace
+    # @yield [RGeoServer::CoverageStore]
+    def coveragestores 
+      doc = Nokogiri::XML(search :workspaces => @name, :coveragestores => nil)
+      doc.xpath('/coverageStores/coverageStore/name/text()').collect do |name| 
+        yield get_coveragestore(name.to_s.strip)
+      end
+    end
+
+    # @param [String] workspace
+    # @param [String] name
+    # @return [RGeoServer::CoverageStore]
+    def get_coveragestore name
+      CoverageStore.new @catalog, :workspace => self, :name => name
     end
 
     def profile_xml_to_hash profile_xml
@@ -93,11 +116,5 @@ module RGeoServer
        }
       h  
     end
-
-    private
-    def each_store klass
-      list(klass, @catalog, profile[klass.root], {:workspace => self}, true) {|x| yield x}
-    end
-
   end
 end 

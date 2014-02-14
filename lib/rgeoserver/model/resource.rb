@@ -12,8 +12,12 @@ module RGeoServer
       attr_accessor :catalog
       
       # mapping object parameters to profile elements
-      OBJ_ATTRIBUTES = {:enabled => 'enabled'}
-      OBJ_DEFAULT_ATTRIBUTES = {:enabled => 'true'}
+      OBJ_ATTRIBUTES = {
+        :enabled => 'enabled'
+      }
+      OBJ_DEFAULT_ATTRIBUTES = {
+        :enabled => 'true'
+      }
 
       define_attribute_methods OBJ_ATTRIBUTES.keys
 
@@ -93,7 +97,7 @@ module RGeoServer
             name_route = name
             update = false
           end
-          if !update && new?
+          if new? and not update # need to create
             if self.respond_to?(:create_route)
               raise "Resource cannot be created directly" if create_route.nil?
               route = create_route
@@ -103,7 +107,7 @@ module RGeoServer
             options = create_options.merge(options) if self.respond_to?(:create_options)
             @catalog.add(route, message, create_method, options)
             clear
-          else
+          else # exists
             options = update_params(name_route).merge(options)
             route = {@route => name_route}
             @catalog.modify(route, message, update_method, options) #unless changes.empty?

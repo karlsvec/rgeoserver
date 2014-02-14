@@ -168,9 +168,9 @@ module RGeoServer
           raise GeoServerArgumentError, "Not a valid workspace: #{workspace}"
         end
         
-        data_store = options[:data_store]
+        data_store = options[:datastore]
         if data_store.instance_of? String
-          @data_store = @catalog.get_data_store(@workspace.name, data_store)
+          @data_store = @workspace.get_datastore(data_store)
         elsif data_store.instance_of? DataStore
           @data_store = data_store
         else

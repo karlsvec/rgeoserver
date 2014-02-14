@@ -1,4 +1,5 @@
 require 'active_model'
+require 'active_resource'
 require 'nokogiri'
 
 # RGeoServer is a Ruby client for the GeoServer RESTful Configuration interface.
