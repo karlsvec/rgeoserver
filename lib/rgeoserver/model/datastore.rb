@@ -3,26 +3,6 @@ module RGeoServer
   # A data store is a source of spatial data that is vector based. It can be a file in the case of a Shapefile, a database in the case of PostGIS, or a server in the case of a remote Web Feature Service.
   class DataStore < ResourceInfo
 
-    class DataStoreAlreadyExists < StandardError
-      def initialize(name)
-        @name = name
-      end
-
-      def message
-        "The DataStore '#{@name}' already exists and can not be replaced."
-      end
-    end
-
-    class DataTypeNotExpected < StandardError
-      def initialize(data_type)
-        @data_type = data_type
-      end
-
-      def message
-        "The DataStore does not not accept the data type '#{@data_type}'."
-      end
-    end
-
     OBJ_ATTRIBUTES = {
       :workspace => 'workspace', 
       :connection_parameters => "connection_parameters",
@@ -45,138 +25,65 @@ module RGeoServer
 
     attr_accessor :message
 
-    @@route = "workspaces/%s/datastores"
-    @@root = "dataStores"
-    @@resource_name = "dataStore"
-
-    def self.root
-      @@root
-    end
-
-    def self.resource_name
-      @@resource_name
-    end
-
-    def self.root_xpath
-      "//#{root}/#{resource_name}"
-    end
-
-    def self.member_xpath
-      "//#{resource_name}"
-    end
-
-    def route
-      @@route % @workspace.name
-    end
-
-    def update_route
-      "#{route}/#{@name}"
+    # @param [RGeoServer::Catalog] catalog
+    # @param [RGeoServer::Workspace|String] options `:workspace`, `:name`
+    def initialize catalog, options
+      super(catalog)
+      _run_initialize_callbacks do
+        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+        ws = options[:workspace]
+        if ws.instance_of? String
+          workspace = catalog.get_workspace(ws)
+        elsif ws.instance_of? Workspace
+          workspace = ws
+        else
+          raise GeoServerArgumentError, "Not a valid workspace: #{ws}"
+        end
+        
+        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        name = options[:name].to_s.strip
+      end
     end
 
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.dataStore {
-          xml.name @name
-          xml.enabled @enabled
-          xml.description @description
-          xml.type_ @data_type if (data_type_changed? || new?)
+          xml.name name
+          xml.enabled enabled
+          xml.description description
+          xml.type_ data_type if data_type_changed? or new?
           xml.connectionParameters {  # this could be empty
-            @connection_parameters.each_pair { |k,v|
+            connection_parameters.each_pair { |k,v|
               xml.entry(:key => k) {
                 xml.text v
               }
-            } unless @connection_parameters.nil? || @connection_parameters.empty?
+            } unless connection_parameters.nil? or connection_parameters.empty?
           }
         }
-      end
-      # ap builder.doc
-      builder.doc.to_xml
-    end
-
-    # @param [RGeoServer::Catalog] catalog
-    # @param [RGeoServer::Workspace|String] options `:workspace`
-    # options `:name`
-    def initialize catalog, options
-      super({})
-      _run_initialize_callbacks do
-        @catalog = catalog
-        workspace = options[:workspace] || 'default'
-        if workspace.instance_of? String
-          @workspace = @catalog.get_workspace(workspace)
-        elsif workspace.instance_of? Workspace
-          @workspace = workspace
-        else
-          raise ArgumentError, "Not a valid workspace: #{workspace}"
-        end
-
-        @name = options[:name].strip
-        @route = route
-      end
+      end.doc.to_xml
     end
 
     # @yield [RGeoServer::FeatureType]
     def featuretypes
-      doc = Nokogiri::XML(search :workspaces => @workspace.name, :datastores => @name, :featuretypes => nil)
-      doc.xpath('/featureTypes/featureType/name/text()').each do |name| 
-        yield get_featuretype(name.to_s.strip)
+      doc = Nokogiri::XML(catalog.search :workspaces => workspace.name, :datastores => name, :featuretypes => nil)
+      doc.xpath('/featureTypes/featureType/name').each do |n| 
+        yield get_featuretype(n.text.strip)
       end
     end
 
     # @param [String] name
     # @return [RGeoServer::FeatureType]
     def get_featuretype name
-      FeatureType.new @catalog, :workspace => @workspace, :datastore => self, :name => name
-    end
-
-    def upload_file local_file, publish = {}
-      upload local_file, :file, data_type, publish
-    end
-    def upload_external remote_file, publish = {}
-      puts "Uploading external file #{remote_file} #{publish}"
-      upload remote_file, :external, data_type, publish
-    end
-    def upload_url url, publish = {}
-      upload url, :url, data_type, publish
-    end
-    
-    # @param [String] path - location of upload data
-    # @param [Symbol] upload_method -- flag for :file, :url, or :external
-    # @param [Symbol] data_type -- currently only :shapefile
-    # @param [Boolean] publish -- only valid for :file  
-    def upload path, upload_method = :file, data_type = :shapefile, publish = false
-      ap({ :path => path, :upload_method => upload_method, :data_type => data_type, :publish => publish, :self => self}) if $DEBUG
-
-      raise DataStoreAlreadyExists, @name unless new?
-      raise DataTypeNotExpected, data_type unless [:shapefile].include? data_type
-
-      ext = 'shp'
-      case upload_method
-      when :file then # local file that we post
-        local_file = File.expand_path(path)
-        unless local_file =~ %r{\.zip$} and File.exist? local_file
-          raise ArgumentError, "Shapefile upload must be ZIP file: #{local_file}" 
-        end
-        puts "Uploading #{File.size(local_file)} bytes from file #{local_file}..."
-        
-        catalog.client["#{route}/#{name}/file.#{ext}"].put File.read(local_file), :content_type => 'application/zip'
-        refresh
-      when :external then # remote file that we reference
-        catalog.client["#{route}/#{name}/external.#{ext}"].put path, :content_type => 'text/plain'
-      when :url then
-        catalog.client["#{route}/#{name}/url.#{ext}"].put path, :content_type => 'text/plain'
-      else
-        raise NotImplementedError, "Unsupported upload method #{upload_method}"
-      end
-      self
+      FeatureType.new catalog, :workspace => workspace, :datastore => self, :name => name
     end
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
       h = {
         "name" => doc.at_xpath('//name').text.strip,
-        "description" => doc.at_xpath('//description/text()').to_s,
-        "enabled" => doc.at_xpath('//enabled/text()').to_s,
-        'type' => doc.at_xpath('//type/text()').to_s,
+        "description" => doc.at_xpath('//description').text,
+        "enabled" => doc.at_xpath('//enabled').text,
+        'type' => doc.at_xpath('//type').text,
         "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
       }
       # XXX: assume that we know the workspace for <workspace>...</workspace>

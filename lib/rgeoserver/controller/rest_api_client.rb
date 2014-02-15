@@ -14,8 +14,7 @@ module RGeoServer
     # @param [Hash] config configuration 
     # return [RestClient::Resource]
     def rest_client config
-      ap({:rest_client => config}) if $DEBUG
-      raise GeoServerArgumentError, 'RestApiClient#rest_client requires :url' if config[:url].nil?
+      raise GeoServerArgumentError, "#{self.class}#rest_client requires :url" if config[:url].nil?
       RestClient::Resource.new(config[:url], 
           :user => config[:user], 
           :password => config[:password], 
@@ -60,7 +59,6 @@ module RGeoServer
       resources = client[url_for(what, options)]
       resources.options[:headers] = h
       begin
-        ap({ :func => { :search => what }, :request => resources }) if $DEBUG
         return resources.get
       rescue RestClient::InternalServerError => e
         log_error e

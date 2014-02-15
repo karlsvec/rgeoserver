@@ -21,7 +21,7 @@ module RGeoServer
     end
 
     def to_s
-      "Catalog: #{config[:url]}"
+      "#{self.class}: #{config[:url]}"
     end
 
     #= Workspaces
@@ -29,8 +29,8 @@ module RGeoServer
     # @yield [RGeoServer::Workspace]
     def workspaces
       doc = Nokogiri::XML(search :workspaces => nil)
-      doc.xpath('/workspaces/workspace/name/text()').each do |name|
-        yield get_workspace(name)
+      doc.xpath('/workspaces/workspace/name').each do |n|
+        yield get_workspace(n.text.strip)
       end
     end
 
@@ -45,8 +45,8 @@ module RGeoServer
     # @return [RGeoServer::Layer]
     def layers
       doc = Nokogiri::XML(self.search :layers => nil)
-      doc.xpath('/layers/layer/name/text()').each do |name|
-        yield get_layer(name.to_s.strip)
+      doc.xpath('/layers/layer/name').each do |n|
+        yield get_layer(n.text.strip)
       end
     end
 
@@ -61,8 +61,8 @@ module RGeoServer
     # @yield [RGeoServer::Style]
     def styles
       doc = Nokogiri::XML(search :styles => nil)
-      doc.xpath('/styles/style/name/text()').each do |name| 
-        yield get_style(name.to_s.strip)
+      doc.xpath('/styles/style/name').each do |n| 
+        yield get_style(n.text.strip)
       end
     end
 
@@ -71,19 +71,5 @@ module RGeoServer
     def get_style name
       Style.new self, :name => name
     end
-
-    #= Configuration reloading
-    # Reloads the catalog and configuration from disk. This operation is used to reload GeoServer in cases where an external tool has modified the on disk configuration. This operation will also force GeoServer to drop any internal caches and reconnect to all data stores.
-    def reload
-      do_url 'reload', :put
-    end
-
-    #= Resource reset
-    # Resets all store/raster/schema caches and starts fresh. This operation is used to force GeoServer to drop all caches and stores and reconnect fresh to each of them first time they are needed by a request. This is useful in case the stores themselves cache some information about the data structures they manage that changed in the meantime.
-    def reset
-      do_url 'reset', :put
-    end
-
   end
-
 end

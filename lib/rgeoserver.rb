@@ -7,9 +7,9 @@ module RGeoServer
   require 'rgeoserver/version'
   require 'rgeoserver/config'
 
-  autoload :Catalog,              "rgeoserver/catalog"
-  autoload :GeoServerUrlHelpers,  "rgeoserver/geoserver_url_helpers"
-  autoload :RestApiClient,        "rgeoserver/rest_api_client"
+  autoload :Catalog,              "rgeoserver/controller/catalog"
+  autoload :GeoServerUrlHelpers,  "rgeoserver/controller/geoserver_url_helpers"
+  autoload :RestApiClient,        "rgeoserver/controller/rest_api_client"
 
   autoload :Coverage,             "rgeoserver/model/coverage"
   autoload :CoverageStore,        "rgeoserver/model/coveragestore"

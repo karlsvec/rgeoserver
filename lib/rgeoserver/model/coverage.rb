@@ -37,26 +37,6 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    @@route = "workspaces/%s/coveragestores/%s/coverages"
-    @@root  = "coverages"
-    @@resource_name = "coverage"
-
-    def self.root
-      @@root
-    end
-
-    def self.member_xpath
-      "//#{resource_name}"
-    end
-
-    def self.resource_name
-      @@resource_name
-    end
-
-    def route
-      @@route % [@workspace.name , @coverage_store.name]
-    end
-
     def to_mimetype(type, default = 'text/xml')
       return @@metadata_types[type.upcase] if @@metadata_types.include?(type.upcase) 
       default
@@ -65,31 +45,31 @@ module RGeoServer
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.coverage {
-          xml.name @name
-          xml.title @title 
-          xml.enabled @enabled if enabled_changed? or new?
+          xml.name name
+          xml.title title 
+          xml.enabled enabled if enabled_changed? or new?
           if new?
-            xml.nativeName @name
-            xml.abstract @abtract if abstract_changed?
+            xml.nativeName name
+            xml.abstract abstract if abstract_changed?
             xml.metadataLinks {
-              @metadata_links.each do |m|
+              metadata_links.each do |m|
                 xml.metadataLink {
                   xml.type_ to_mimetype(m['metadataType'])
                   xml.metadataType m['metadataType']
                   xml.content m['content']
                 }
               end
-            } if @metadata_links
+            } if metadata_links
           end
           xml.keywords {
-            @keywords.each do |k|
+            keywords.each do |k|
               xml.keyword RGeoServer::Metadata::to_keyword(k)
             end
-          } if @keywords and new? or keywords_changed?
+          } if keywords and new? or keywords_changed?
           
         }
       end
-      @message = builder.doc.to_xml 
+      message = builder.doc.to_xml 
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -99,70 +79,71 @@ module RGeoServer
     def initialize catalog, options 
       super(catalog)
       _run_initialize_callbacks do
-        workspace = options[:workspace] || 'default'
-        if workspace.instance_of? String
-          @workspace = @catalog.get_workspace(workspace)
-        elsif workspace.instance_of? Workspace
-          @workspace = workspace
+        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+        ws = options[:workspace]
+        if ws.instance_of? String
+          workspace = catalog.get_workspace(ws)
+        elsif ws.instance_of? Workspace
+          workspace = ws
         else
-          raise "Not a valid workspace"
+          raise GeoServerArgumentError, "Not a valid workspace: #{ws}"
         end
-        coverage_store = options[:coveragestore]
-        if coverage_store.instance_of? String
-          @coverage_store = @workspace.get_coveragestore(coverage_store)
-        elsif coverage_store.instance_of? CoverageStore
-          @coverage_store = coverage_store
+        
+        raise GeoServerArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
+        cs = options[:coveragestore]
+        if cs.instance_of? String
+          coverage_store = workspace.get_coveragestore(cs)
+        elsif cs.instance_of? CoverageStore
+          coverage_store = cs
         else
-          raise "Not a valid coverage store"
+          raise GeoServerArgumentError, "Not a valid coveragestore: #{cs}"
         end
 
-        @name = options[:name]
-        @enabled = options[:enabled] || true
-        @route = route
+        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        name = options[:name].to_s.strip
       end
     end
 
     # @return [Hash] extraction from GeoServer XML for this coverage
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      h = {
-        "coverage_store" => @coverage_store.name,
-        "workspace" => @workspace.name,
+      {
+        "coverage_store" => coverage_store.name,
+        "workspace" => workspace.name,
         "name" => doc.at_xpath('//name').text.strip,
-        "nativeName" => doc.at_xpath('//nativeName/text()').to_s,
-        "nativeCRS" => doc.at_xpath('//nativeCRS/text()').to_s,
-        "title" => doc.at_xpath('//title/text()').to_s,
-        "srs" => doc.at_xpath('//srs/text()').to_s,
+        "nativeName" => doc.at_xpath('//nativeName').text,
+        "nativeCRS" => doc.at_xpath('//nativeCRS').text,
+        "title" => doc.at_xpath('//title').text,
+        "srs" => doc.at_xpath('//srs').text,
         "nativeBoundingBox" => { 
-          'minx' => doc.at_xpath('//nativeBoundingBox/minx/text()').to_s,
-          'miny' => doc.at_xpath('//nativeBoundingBox/miny/text()').to_s,
-          'maxx' => doc.at_xpath('//nativeBoundingBox/maxx/text()').to_s,
-          'maxy' => doc.at_xpath('//nativeBoundingBox/maxy/text()').to_s,
-          'crs' => doc.at_xpath('//nativeBoundingBox/crs/text()').to_s
+          'minx' => doc.at_xpath('//nativeBoundingBox/minx').text.to_f,
+          'miny' => doc.at_xpath('//nativeBoundingBox/miny').text.to_f,
+          'maxx' => doc.at_xpath('//nativeBoundingBox/maxx').text.to_f,
+          'maxy' => doc.at_xpath('//nativeBoundingBox/maxy').text.to_f,
+          'crs' => doc.at_xpath('//nativeBoundingBox/crs').text
         },
         "latLonBoundingBox" => { 
-          'minx' => doc.at_xpath('//latLonBoundingBox/minx/text()').to_s,
-          'miny' => doc.at_xpath('//latLonBoundingBox/miny/text()').to_s,
-          'maxx' => doc.at_xpath('//latLonBoundingBox/maxx/text()').to_s,
-          'maxy' => doc.at_xpath('//latLonBoundingBox/maxy/text()').to_s,
-          'crs' => doc.at_xpath('//latLonBoundingBox/crs/text()').to_s
+          'minx' => doc.at_xpath('//latLonBoundingBox/minx').text.to_f,
+          'miny' => doc.at_xpath('//latLonBoundingBox/miny').text.to_f,
+          'maxx' => doc.at_xpath('//latLonBoundingBox/maxx').text.to_f,
+          'maxy' => doc.at_xpath('//latLonBoundingBox/maxy').text.to_f,
+          'crs' => doc.at_xpath('//latLonBoundingBox/crs').text
         },
-        "abstract" => doc.at_xpath('//abstract/text()').to_s, 
+        "abstract" => doc.at_xpath('//abstract').text, 
         "supportedFormats" => doc.xpath('//supportedFormats/string').collect{ |t| t.to_s },
         "keywords" => doc.at_xpath('//keywords').collect { |kl|
           {
-            'keyword' => kl.at_xpath('//string/text()').to_s
+            'keyword' => kl.at_xpath('//string').text
           }
         },
         "metadataLinks" => doc.xpath('//metadataLinks/metadataLink').collect{ |m|
           {
-            'type' => m.at_xpath('//type/text()').to_s,
-            'metadataType' => m.at_xpath('//metadataType/text()').to_s,
-            'content' => m.at_xpath('//content/text()').to_s
+            'type' => m.at_xpath('//type').text,
+            'metadataType' => m.at_xpath('//metadataType').text,
+            'content' => m.at_xpath('//content').text
           }
         },
       }.freeze
-      h  
     end
 
   end

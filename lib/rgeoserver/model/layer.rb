@@ -3,7 +3,18 @@ module RGeoServer
   # A layer is a published resource (feature type or coverage).
   class Layer < ResourceInfo
 
-    OBJ_ATTRIBUTES = {:enabled => 'enabled', :queryable => 'queryable', :path => 'path', :catalog => 'catalog', :name => 'name', :default_style => 'default_style', :alternate_styles => 'alternate_styles', :metadata => 'metadata', :attribution => 'attribution', :layer_type => 'type' }
+    OBJ_ATTRIBUTES = { 
+      :enabled => 'enabled', 
+      :queryable => 'queryable', 
+      :path => 'path', 
+      :catalog => 'catalog', 
+      :name => 'name', 
+      :default_style => 'default_style', 
+      :alternate_styles => 'alternate_styles', 
+      :metadata => 'metadata', 
+      :attribution => 'attribution', 
+      :layer_type => 'type' 
+    }
     OBJ_DEFAULT_ATTRIBUTES = {
       :enabled => 'true',
       :queryable => 'true',
@@ -30,28 +41,9 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    @@route = "layers"
-    @@resource_name = "layer"
-
-    def self.resource_name
-      @@resource_name
-    end
-
-    def self.root_xpath
-      "//#{@@route}/#{@@resource_name}"
-    end
-
-    def self.member_xpath
-      "//#{resource_name}"
-    end
-
-    def route
-      @@route
-    end
-
     # No direct layer creation
     def create_route
-      nil
+      raise NotImplemented, 'No direct layer creation'
     end
 
     def update_params name_route = @name
@@ -59,13 +51,13 @@ module RGeoServer
     end
 
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.layer {
-          xml.name @name
+          xml.name name
           xml.path path
           xml.type_ layer_type
-          xml.enabled @enabled
-          xml.queryable @queryable
+          xml.enabled enabled
+          xml.queryable queryable
           xml.defaultStyle {
             xml.name default_style
           }
@@ -92,8 +84,7 @@ module RGeoServer
             xml.logoHeight attribution['logo_height']
           } if !attribution['logo_width'].nil? && !attribution['logo_height'].nil?
         }
-      end
-      return builder.doc.to_xml
+      end.doc.to_xml
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -104,27 +95,20 @@ module RGeoServer
     def initialize catalog, options
       super(catalog)
       _run_initialize_callbacks do
+        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
         if options[:name].instance_of? Layer
-          options[:name] = options[:name].name.to_s
+          name = options[:name].name
+        else
+          name = options[:name].to_s.strip
         end
-        
-        raise GeoServerArgumentError, "Layer requires :name option" unless options.include? :name and options[:name].is_a? String
-        @name = options[:name].to_s.strip
-        ap({:init_name => @name}) if $DEBUG
-        
-        raise NotImplementedError, ":default_style" if options.include? :default_style
-        raise NotImplementedError, ":alternate_styles" if options.include? :alternate_styles
-        #@default_style = options[:default_style] || ''
-        #@alternate_styles = options[:alternate_styles] || []
       end
-      @route = route
     end
 
     def resource= r
       if r.is_a?(RGeoServer::Coverage) || r.is_a?(RGeoServer::FeatureType)
         @resource = r
       else
-        raise GeoServerArgumentError, 'Unknown resource type: #{r.class}'
+        raise GeoServerArgumentError, "Unknown resource type: #{r.class}"
       end
     end
 
@@ -138,19 +122,16 @@ module RGeoServer
 
           case data_type
           when 'coverage'
-            return RGeoServer::Coverage.new @catalog, :workspace => workspace, :coverage_store => store, :name => name
+            return RGeoServer::Coverage.new catalog, :workspace => workspace, :coverage_store => store, :name => name
           when 'featureType'
-            ap({:catalog => @catalog, :workspace => workspace, :data_store => store, :name => name}) if $DEBUG
             begin
-              ft = RGeoServer::FeatureType.new @catalog, :workspace => workspace, :data_store => store, :name => name
-              ap({:featureType => ft, :route => ft.route}) if $DEBUG
+              ft = RGeoServer::FeatureType.new catalog, :workspace => workspace, :data_store => store, :name => name
             rescue Exception => e
-              ap({:errormsg => "#{e}", :error => e, :trace => e.backtrace}) if $DEBUG
             end
             
             return ft
           else
-            raise GeoServerArgumentError, 'Unknown resource type: #{data_type}'
+            raise GeoServerArgumentError, "Unknown resource type: #{data_type}"
           end
         else
           nil
@@ -160,38 +141,37 @@ module RGeoServer
       end
     end
 
-    # TODO: Simplify if necessary with "/layers/<l>/styles[.<format>]", as specified in the API
-    def get_default_style &block
-      self.class.list Style, @catalog, @default_style, {:layer => self}, false, &block
+    def styles
+      raise NotImplemented
     end
-
-    def get_alternate_styles &block
-      self.class.list Style, @catalog, @alternate_styles, {:layer => self}, false, &block
+    
+    def get_style name
+      raise NotImplemented
     end
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      name = doc.at_xpath('//name/text()').text.strip
+      name = doc.at_xpath('//name').text.strip
       link = doc.at_xpath('//resource//atom:link/@href', "xmlns:atom"=>"http://www.w3.org/2005/Atom").text.strip
       workspace, _, store = link.match(/workspaces\/(.*?)\/(.*?)\/(.*?)\/(.*?)\/#{name}.xml$/).to_a[1,3]
 
       h = {
         "name" => name,
-        "path" => doc.at_xpath('//path/text()').to_s,
-        "default_style" => doc.at_xpath('//defaultStyle/name/text()').to_s,
-        "alternate_styles" => doc.xpath('//styles/style/name/text()').collect{ |s| s.to_s},
+        "path" => doc.at_xpath('//path').text,
+        "default_style" => doc.at_xpath('//defaultStyle/name').text,
+        "alternate_styles" => doc.xpath('//styles/style/name').collect{ |s| s.text},
         # Types can be: VECTOR, RASTER, REMOTE, WMS
-        "type" => doc.at_xpath('//type/text()').to_s,
-        "enabled" => doc.at_xpath('//enabled/text()').to_s,
-        "queryable" => doc.at_xpath('//queryable/text()').to_s,
+        "type" => doc.at_xpath('//type').text,
+        "enabled" => doc.at_xpath('//enabled').text,
+        "queryable" => doc.at_xpath('//queryable').text,
         "attribution" => {
-          "title" => doc.at_xpath('//attribution/title/text()').to_s,
-          "logo_width" => doc.at_xpath('//attribution/logoWidth/text()').to_s,
-          "logo_height" => doc.at_xpath('//attribution/logoHeight/text()').to_s
+          "title" => doc.at_xpath('//attribution/title').text,
+          "logo_width" => doc.at_xpath('//attribution/logoWidth').text,
+          "logo_height" => doc.at_xpath('//attribution/logoHeight').text
         },
         "resource" => {
           "type" => doc.at_xpath('//resource/@class').to_s,
-          "name" => doc.at_xpath('//resource/name/text()').to_s,
+          "name" => doc.at_xpath('//resource/name').text,
           "store" => store,
           "workspace" => workspace
         },
@@ -207,7 +187,7 @@ module RGeoServer
     # Return full name of resource with namespace prefix
     def prefixed_name
       return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
-      raise "Workspace is not defined for this resource"
+      raise GeoServerArgumentError, "Workspace is not defined for this resource"
     end
 
     #= GeoWebCache Operations for this layer
@@ -237,9 +217,9 @@ module RGeoServer
       sub_path = "seed/#{prefixed_name}.xml"
       case op
       when :issue
-        @catalog.do_url sub_path, :post, _build_seed_request(:seed, options), {},  @catalog.gwc_client
+        catalog.do_url sub_path, :post, _build_seed_request(:seed, options), {},  catalog.gwc_client
       when :truncate
-        @catalog.do_url sub_path, :post, _build_seed_request(:truncate, options), {}, @catalog.gwc_client
+        catalog.do_url sub_path, :post, _build_seed_request(:truncate, options), {}, catalog.gwc_client
       when :status
         raise NotImplementedError, "#{op}"
       end
@@ -256,7 +236,7 @@ module RGeoServer
     #  options[:gridSetId]
     #
     def _build_seed_request operation, options
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.seedRequest {
           xml.name prefixed_name
 
@@ -289,9 +269,7 @@ module RGeoServer
             }
           } if options[:parameters].is_a?(Hash)
         }
-      end
-      ap({:build_seed_request => builder.doc}) if $DEBUG
-      return builder.doc.to_xml
+      end.doc.to_xml
     end
   end
 

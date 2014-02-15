@@ -23,49 +23,25 @@ module RGeoServer
     }  
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
-
-    @@route = "workspaces/%s/coveragestores"
-    @@root = "coverageStores"
-    @@resource_name = "coverageStore"
-
-    def self.root
-      @@root
-    end
-
-    def self.resource_name
-      @@resource_name
-    end
-
-    def self.root_xpath
-      "//#{root}/#{resource_name}"
-    end
-
-    def self.member_xpath
-      "//#{resource_name}"
-    end
-
-    def route
-      @@route % @workspace.name 
-    end
-
+    
     def update_params name_route = @name 
-      { :name => name_route, :workspace => @workspace.name }
+      { :name => name_route, :workspace => workspace.name }
     end
 
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.coverageStore {
-          xml.name @name  
+          xml.name name  
           xml.workspace {
-            xml.name @workspace.name
+            xml.name workspace.name
           }
-          xml.enabled @enabled if (enabled_changed? || new?)
-          xml.type_ @data_type if (data_type_changed? || new?)
-          xml.description @description if (description_changed? || new?)
-          xml.url @url if (url_changed? || new?)
+          xml.enabled enabled if enabled_changed? or new?
+          xml.type_ data_type if data_type_changed? or new?
+          xml.description description if description_changed? or new?
+          xml.url url if url_changed? or new?
         }
       end
-      @message = builder.doc.to_xml 
+      message = builder.doc.to_xml 
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -73,32 +49,34 @@ module RGeoServer
     def initialize catalog, options 
       super(catalog)
       _run_initialize_callbacks do
-        workspace = options[:workspace] || 'default'
-        if workspace.instance_of? String
-          @workspace = @catalog.get_workspace(workspace)
-        elsif workspace.instance_of? Workspace
-          @workspace = workspace
+        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+        ws = options[:workspace]
+        if ws.instance_of? String
+          workspace = catalog.get_workspace(ws)
+        elsif ws.instance_of? Workspace
+          workspace = ws
         else
-          raise "Not a valid workspace"
+          raise GeoServerArgumentError, "Not a valid workspace: #{workspace}"
         end
-        @name = options[:name].strip
-        @route = route
+        
+        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
       end        
     end
 
     # @param [String] workspace
     # @yield [RGeoServer::Coverage]
     def coverages
-      doc = Nokogiri::XML(search :workspaces => @workspace.name, :coveragestores => @name, :coverages => nil)
-      doc.xpath('/coverages/coverage/name/text()').each do |name| 
-        yield get_coverage(name.to_s.strip)
+      doc = Nokogiri::XML(search :workspaces => workspace.name, :coveragestores => name, :coverages => nil)
+      doc.xpath('/coverages/coverage/name/text()').each do |n| 
+        yield get_coverage(n.to_s.strip)
       end
     end
     
     # @param [String] name
     # @return [RGeoServer::Coverage]
     def get_coverage name
-      Coverage.new @catalog, :workspace => @workspace, :coverage_store => self, :name => name
+      Coverage.new catalog, :workspace => workspace, :coverage_store => self, :name => name
     end
 
     # <coverageStore>
@@ -124,16 +102,16 @@ module RGeoServer
       doc = profile_xml_to_ng profile_xml
       h = {
         'name' => doc.at_xpath('//name').text.strip, 
-        'description' => doc.at_xpath('//description/text()').to_s,
-        'type' => doc.at_xpath('//type/text()').to_s,
-        'enabled' => doc.at_xpath('//enabled/text()').to_s,
-        'url' => doc.at_xpath('//url/text()').to_s,
-        'workspace' => @workspace.name # Assume correct workspace
+        'description' => doc.at_xpath('//description').text,
+        'type' => doc.at_xpath('//type').text,
+        'enabled' => doc.at_xpath('//enabled').text,
+        'url' => doc.at_xpath('//url').text,
+        'workspace' => workspace.name # Assume correct workspace
       }
       doc.xpath('//coverages/atom:link[@rel="alternate"]/@href', 
                 "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each{ |l| 
         h['coverages'] = begin
-          response = @catalog.do_url l.text
+          response = catalog.do_url l.text
           Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
         rescue RestClient::ResourceNotFound
           []

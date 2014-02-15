@@ -9,31 +9,12 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    @@route = 'styles'
-    @@resource_name = 'style'
     @@sld_namespace = 'http://www.opengis.net/sld'
-
-    def self.resource_name
-      @@resource_name
-    end
-
-    def self.root_xpath
-      "//#{@@route}/#{@@resource_name}"
-    end
-
-    def self.member_xpath
-      "//#{resource_name}"
-    end
-
-    def route
-      @@route  
-    end
 
     def sld_namespace
       @@sld_namespace
     end
 
- 
     def create_options
       {
         :headers => {
@@ -41,7 +22,7 @@ module RGeoServer
           :content_type=> "application/vnd.ogc.sld+xml"
         },
         :format => :xml,
-        :name => @name
+        :name => name
       }
     end   
     
@@ -64,34 +45,32 @@ module RGeoServer
     def initialize catalog, options
       super(catalog)
       _run_initialize_callbacks do
-        @name = options[:name].strip
+        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        name = options[:name].to_s.strip
       end        
-      @route = route
     end
 
     # Obtain all layers that use this style.
     # WARNING: This will be slow and inneficient when the list of all layers is too long.
-    def layers &block
-      return to_enum(:layers).to_a unless block_given?
-      @catalog.get_layers do |l|
+    def layers
+      catalog.layers do |l|
         lyrs = [l.profile['default_style']]+l.profile['alternate_styles']
-        yield l if lyrs.include? @name
+        yield l if lyrs.include? name
       end 
     end
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
-      h = {
+      {
         'name' => doc.at_xpath('//name').text.strip, 
-        'sld_version' => doc.at_xpath('//sldVersion/version/text()').to_s,
-        'filename' => doc.at_xpath('//filename/text()').to_s,
+        'sld_version' => doc.at_xpath('//sldVersion/version').text,
+        'filename' => doc.at_xpath('//filename').text,
         'sld_doc' => begin
-          Nokogiri::XML(@catalog.search({:styles => @name}, options={:format => 'sld'})).to_xml
+          Nokogiri::XML(catalog.search({:styles => @name}, options={:format => 'sld'})).to_xml
         rescue RestClient::ResourceNotFound
           nil 
         end
       }.freeze 
-      h 
     end
 
   end

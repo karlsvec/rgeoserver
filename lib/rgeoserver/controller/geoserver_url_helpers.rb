@@ -67,14 +67,12 @@ module RGeoServer
     # - workspaces/_name_/datastores/_name_.xml
     # - workspaces/_name_/datastores/_name_/featuretype/_name_.xml
     def url_for base, options = {}
-      raise GeoServerArgumentError, 'base must be Hash' unless base.is_a? Hash
+      raise GeoServerArgumentError, 'base must be Hash' unless base.is_a? Hash and not base.empty?
       raise GeoServerArgumentError, 'options must be Hash' unless options.is_a? Hash
 
       # convert all keys to symbols
-      unless base.keys.select {|k| not k.is_a? Symbol}.size == 0
-        base = Hash[base.map {|k,v| [k.to_sym, v]}] 
-      end
-      
+      base = Hash[base.map {|k,v| [k.to_sym, v]}] 
+            
       # preceeding arguments cannot be nil
       if base.to_a[0..-2].select{|x| x[1].nil?}.size > 0
         raise GeoServerArgumentError, 'Preceeding arguments cannot be nil'
