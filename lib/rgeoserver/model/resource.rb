@@ -157,5 +157,8 @@ module RGeoServer
         raise NotImplementedError, 'profile_xml_to_hash is abstract method'
       end
 
+      def message
+        raise NotImplementedError, 'message is abstract method'
+      end
     end
 end

@@ -1,3 +1,4 @@
+require 'awesome_print'
 
 module RGeoServer
   module GeoServerUrlHelpers
@@ -5,99 +6,82 @@ module RGeoServer
     # Valid URI sequences for REST API
     # @see http://docs.geoserver.org/stable/en/user/rest/index.html
     URI_SEQUENCES = [
-      %w{settings},
-      %w{settings contact},
-      %w{workspaces},
-      %w{workspaces settings},
-      %w{namespaces},
-      %w{workspaces datastores},
-      %w{workspaces datastores file},
-      %w{workspaces datastores external},
-      %w{workspaces datastores url},
-      %w{workspaces datastores featuretypes},
-      %w{workspaces coveragestores},
-      %w{workspaces coveragestores file},
-      %w{workspaces coveragestores coverages},
-      %w{styles},
-      %w{workspaces styles},
-      %w{layers},
-      %w{layers styles},
-      %w{layergroups},
-      %w{workspaces layergroups},
+      %w{about},
       %w{fonts},
-      %w{templates},
+      %w{layergroups},
+      %w{layers styles},
+      %w{layers},
+      %w{namespaces},
+      %w{reload},
+      %w{reset},
       %w{services wcs settings},
       %w{services wfs settings},
       %w{services wms settings},
-      %w{reload},
-      %w{reset}
+      %w{settings contact},
+      %w{settings},
+      %w{styles},
+      %w{templates},
+      %w{workspaces coveragestores coverages},
+      %w{workspaces coveragestores file},
+      %w{workspaces coveragestores},
+      %w{workspaces datastores external},
+      %w{workspaces datastores featuretypes},
+      %w{workspaces datastores file},
+      %w{workspaces datastores url},
+      %w{workspaces datastores},
+      %w{workspaces layergroups},
+      %w{workspaces settings},
+      %w{workspaces styles},
+      %w{workspaces}
     ].map {|x| x.map(&:to_sym)}
-    
-    # Regexp processing for #URI_SEQUENCES
-    URI_REGEX_VALID = URI_SEQUENCES.map do |a|
-      Regexp.new('^' + a.map {|x| x.to_s}.join('/\w+/') + '[/\w]*$')
-    end
-    URI_REGEX_VALID << %r/^about\/version$/
-    URI_REGEX_VALID << %r/^about\/manifest$/
-          
-    URI_REGEX_INVALID = [ 
-      %r/^layers\/styles$/,
-      %r/^layers\/\w+\/styles\/\w+$/,
-      %r/^workspaces\/\w+\/layers\/\w+$/,
-      %r/^workspaces\/\w+\/coverages\/\w+$/,
-      %r/^workspaces\/\w+\/coverages$/
-    ]
-    
+
     # Valid formats for REST API
     # See http://docs.geoserver.org/stable/en/user/rest/api/details.html
-    URI_FORMATS = %w{xml json html sld zip}.map(&:to_sym)
+    # URI_FORMATS = %w{xml json html sld zip}.map(&:to_sym)
     
     public
     # @see http://docs.geoserver.org/latest/en/user/rest/api/
     # @param [Hash] base examples:
+    # - { :settings => nil }
+    # - { :layers => name }
+    # - { :styles => name }
     # - { :workspaces => nil }
+    # - { :workspaces => name }
+    # - { :workspaces => name, :datastores => nil }
+    # - { :workspaces => name, :datastores => name, :featuretype => nil }
+    # - { :workspaces => name, :datastores => name, :featuretype => name }
     # @param [Hash] options
     # @return [String] baseURL for REST API, e.g.,:
-    # - settings.xml
-    # - layers/_name_.xml
-    # - styles/_name_.xml
-    # - workspaces/_name_.xml
-    # - workspaces/_name_/settings.xml
-    # - namespaces/_name_.xml
-    # - workspaces/_name_/datastores/_name_.xml
-    # - workspaces/_name_/datastores/_name_/featuretype/_name_.xml
+    # - settings
+    # - layers/_name_
+    # - styles/_name_
+    # - workspaces
+    # - workspaces/_name_
+    # - workspaces/_name_/datastores
+    # - workspaces/_name_/datastores/_name_/featuretype
+    # - workspaces/_name_/datastores/_name_/featuretype/_name_
     def url_for base, options = {}
       raise GeoServerArgumentError, 'base must be Hash' unless base.is_a? Hash and not base.empty?
       raise GeoServerArgumentError, 'options must be Hash' unless options.is_a? Hash
 
       # convert all keys to symbols
-      base = Hash[base.map {|k,v| [k.to_sym, v]}] 
+      base = Hash[base.map {|k,v| [k.to_sym, v]}]
+      
+      # verify that all paths are correct
+      if URI_SEQUENCES.select {|k| k == base.keys }.empty?
+        raise GeoServerArgumentError, "Invalid REST URI syntax: #{base}" 
+      end
+
+      # preceeding arguments (all but last) cannot be nil
+      if base.size > 1 and base.values.take(base.size - 1).map(&:nil?).any?
+        raise GeoServerArgumentError, "Preceeding arguments cannot be nil: #{base}"
+      end
             
-      # preceeding arguments cannot be nil
-      if base.to_a[0..-2].select{|x| x[1].nil?}.size > 0
-        raise GeoServerArgumentError, 'Preceeding arguments cannot be nil'
-      end
-      
-      # verify that format is ok
-      format = (options.delete(:format) if options.include?(:format)) || :xml
-      unless URI_FORMATS.include?(format)
-        raise GeoServerArgumentError, "Unknown REST API format: '#{format}'" 
-      end
-      
       # rebuild the base
       new_base = base.collect {|k,v| v.nil?? "#{k}" : "#{k}/#{v}"}.join('/').to_s
       new_base = new_base.gsub(%r{/$}, '')
-      
-      # verify that all paths are correct
-      unless URI_REGEX_VALID.each.select {|r| r.match(new_base)}.size > 0
-        raise GeoServerArgumentError, "Invalid REST URI syntax: #{new_base} from #{base}" 
-      end
-      if URI_REGEX_INVALID.each.select {|r| r.match(new_base)}.size > 0
-        raise GeoServerArgumentError, "Invalid REST URI syntax: #{new_base} from #{base}" 
-      end
-      
-      # append format and options
-      new_base += ".#{format}"
+            
+      # append options
       unless options.empty?
         new_base += '?' + options.collect {|k,v| [CGI::escape(k.to_s), CGI::escape(v.to_s)].join('=')}.join('&')
       end

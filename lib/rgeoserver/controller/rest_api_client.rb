@@ -1,9 +1,10 @@
 require 'restclient'
 
 require 'logger'
-$logger = Logger.new(STDERR)
+$logger = Logger.new(STDERR) # XXX: Use config[:restclient][:logfile]
 $logger.level = Logger::INFO
 
+#
 module RGeoServer
   module RestApiClient
 
@@ -15,12 +16,14 @@ module RGeoServer
     # return [RestClient::Resource]
     def rest_client config
       raise GeoServerArgumentError, "#{self.class}#rest_client requires :url" if config[:url].nil?
-      RestClient::Resource.new(config[:url], 
-          :user => config[:user], 
-          :password => config[:password], 
-          :headers => config[:headers], 
-          :timeout => (config[:timeout] || 300).to_i,
-          :open_timeout => (config[:open_timeout] || 60).to_i)
+      RestClient::Resource.new(
+        config[:url], 
+        :user => config[:user], 
+        :password => config[:password], 
+        :headers => config[:headers] || headers, 
+        :timeout => (config[:timeout] || 300).to_i,
+        :open_timeout => (config[:open_timeout] || 60).to_i
+      )
     end
 
     # @param [Hash] config
@@ -44,10 +47,10 @@ module RGeoServer
       @gwc_client
     end
 
-    def headers format = :xml
+    def headers
       { 
-        :accept => format.to_sym, 
-        :content_type => format.to_sym
+        :accept => 'text/xml',
+        :content_type => 'text/xml'
       }
     end
 
@@ -55,9 +58,8 @@ module RGeoServer
     # @param [OrderedHash] what
     # @param [Hash] options
     def search what, options = {}
-      h = options.delete(:headers) || headers(:xml)
       resources = client[url_for(what, options)]
-      resources.options[:headers] = h
+      resources.options[:headers] = headers
       begin
         return resources.get
       rescue RestClient::InternalServerError => e
@@ -91,12 +93,10 @@ module RGeoServer
     # @param [Symbol] method
     # @param [Hash] options
     def add what, message, method, options = {}
-      h = options.delete(:headers) || headers(:xml)
       request = client[url_for(what, options)]
-      request.options[:headers] = h
-      $logger.debug "Adding: \n #{message}"
+      request.options[:headers] = headers
       begin 
-        ap({:add_request => request, :add_message => Nokogiri::XML(message)}) if $DEBUG
+        $logger.debug "Adding: \n #{message}"
         return request.send method, message
       rescue RestClient::InternalServerError => e
         log_error e
@@ -111,12 +111,10 @@ module RGeoServer
     # @param [Symbol] method
     # @param [Hash] options
     def modify what, message, method, options = {}
-      h = options.delete(:headers) || headers(:xml)
       request = client[url_for(what, options)]
-      request.options[:headers] = h
-      $logger.debug "Modifying: \n #{message}"
+      request.options[:headers] = headers
       begin
-        ap({:modify_request => request, :modify_message => Nokogiri::XML(message)}) if $DEBUG
+        $logger.debug "Modifying: \n #{message}"
         return request.send method, message
       rescue RestClient::InternalServerError => e
         log_error e
@@ -130,9 +128,8 @@ module RGeoServer
     # @param [Hash] options
     def purge what, options = {}
       request = client[url_for(what, options)]
-      $logger.debug "Purge: \n #{request}"
       begin
-        ap({:purge_request => request}) if $DEBUG
+        $logger.debug "Purge: \n #{request}"
         return request.delete
       rescue RestClient::InternalServerError => e 
         log_error e
