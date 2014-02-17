@@ -1,4 +1,3 @@
-require 'awesome_print'
 
 module RGeoServer
   module GeoServerUrlHelpers
@@ -17,7 +16,9 @@ module RGeoServer
       %w{services wcs settings},
       %w{services wfs settings},
       %w{services wms settings},
-      %w{settings contact},
+      %w{services wcs workspaces settings},
+      %w{services wfs workspaces settings},
+      %w{services wms workspaces settings},
       %w{settings},
       %w{styles},
       %w{templates},
@@ -34,6 +35,29 @@ module RGeoServer
       %w{workspaces styles},
       %w{workspaces}
     ].map {|x| x.map(&:to_sym)}
+    
+    URI_REGEX_VALUES = [
+      { :about => /^(manifest|version)$/ },
+      { :settings => /^(|contact)$/ },
+      { :fonts => /^$/ },
+      { :reload => /^$/ },
+      { :reset => /^$/ },
+      { :templates => /^(|.+\.ftl)$/ },
+      { :services => /^$/, :wcs => /^$/, :settings => /^$/ },
+      { :services => /^$/, :wfs => /^$/, :settings => /^$/ },
+      { :services => /^$/, :wms => /^$/, :settings => /^$/ },
+      { :services => /^$/, :wcs => /^$/, :workspaces => /.+/, :settings => /^$/ },
+      { :services => /^$/, :wfs => /^$/, :workspaces => /.+/, :settings => /^$/ },
+      { :services => /^$/, :wms => /^$/, :workspaces => /.+/, :settings => /^$/ },
+      { :workspaces => /.+/, :datastores => /^.*$/ },
+      { :workspaces => /.+/, :datastores => /.+/, :featuretypes => /^.*$/ },
+      { :workspaces => /.+/, :datastores => /.+/, :file => /^$/ },
+      { :workspaces => /.+/, :datastores => /.+/, :external => /^$/ },
+      { :workspaces => /.+/, :datastores => /.+/, :url => /^$/ },
+      { :workspaces => /.+/, :coveragestores => /.+/, :file => /^$/ },
+      { :workspaces => /.+/, :coveragestores => /.+/, :coverages => /^.*$/ },
+      { :workspaces => /.+/, :settings => /^$/ }
+    ]
 
     # Valid formats for REST API
     # See http://docs.geoserver.org/stable/en/user/rest/api/details.html
@@ -66,7 +90,7 @@ module RGeoServer
 
       # convert all keys to symbols
       base = Hash[base.map {|k,v| [k.to_sym, v]}]
-      
+
       # verify that all paths are correct
       if URI_SEQUENCES.select {|k| k == base.keys }.empty?
         raise GeoServerArgumentError, "Invalid REST URI syntax: #{base}" 
@@ -76,16 +100,25 @@ module RGeoServer
       if base.size > 1 and base.values.take(base.size - 1).map(&:nil?).any?
         raise GeoServerArgumentError, "Preceeding arguments cannot be nil: #{base}"
       end
-            
+      
+      # validate values using regular expressions
+      URI_REGEX_VALUES.each do |h|
+        if h.keys == base.keys
+          h.each do |k, regex|
+            raise GeoServerArgumentError, "Invalid value: #{k} => #{base[k]}" unless regex.match(base[k].to_s)
+          end
+        end
+      end
+
       # rebuild the base
-      new_base = base.collect {|k,v| v.nil?? "#{k}" : "#{k}/#{v}"}.join('/').to_s
+      new_base = base.collect {|k,v| (v.nil? or v.empty?)? "#{k}" : "#{k}/#{v}"}.join('/').to_s
       new_base = new_base.gsub(%r{/$}, '')
-            
+
       # append options
       unless options.empty?
         new_base += '?' + options.collect {|k,v| [CGI::escape(k.to_s), CGI::escape(v.to_s)].join('=')}.join('&')
       end
-      
+
       puts "url_for: #{base} #{options} => #{new_base}" if $DEBUG
       new_base
     end
