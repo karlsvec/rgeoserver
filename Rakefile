@@ -25,7 +25,7 @@ end
 
 require 'yard'
 YARD::Rake::YardocTask.new do |t|
-  t.options = ["--readme", "README.rdoc"]
+  t.options = ["--readme", "README.rdoc", '--protected']
 end
 
 desc "Run console; defaults to IRB='pry'"
