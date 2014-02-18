@@ -12,7 +12,7 @@ module RGeoServer
       end
 
       def message
-        "The geometry type %s was not expected." % geometry_type
+        "The geometry type #{@geometry_type} was not expected."
       end
     end
 
