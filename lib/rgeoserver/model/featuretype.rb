@@ -4,11 +4,12 @@ module RGeoServer
   # In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store.
   # In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with
   # each feature type corresponding to a table in the database.
-  class FeatureType < ResourceInfo  
+  class FeatureType < ResourceInfo
+    attr_reader :workspace, :datastore
+      
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design  
     OBJ_ATTRIBUTES = {
-      :catalog => "catalog", 
       :name => "name", 
       :native_name => "nativeName", 
       :workspace => "workspace", 
@@ -24,7 +25,6 @@ module RGeoServer
       :projection_policy => 'projection_policy'
     }
     OBJ_DEFAULT_ATTRIBUTES = {
-      :catalog => nil,
       :workspace => nil,
       :data_store => nil,
       :name => nil,
@@ -64,8 +64,8 @@ module RGeoServer
         raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
         ws = options[:workspace]
         if ws.instance_of? String
-          @workspace = @catalog.get_workspace(ws)
-        elsif ws.instance_of? Workspace
+          @workspace = catalog.get_workspace(ws)
+        elsif ws.instance_of? RGeoServer::Workspace
           @workspace = ws
         else
           raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
@@ -74,9 +74,9 @@ module RGeoServer
         raise RGeoServer::ArgumentError, "#{self.class}.new requires :datastore option" unless options.include?(:datastore)
         ds = options[:datastore]
         if ds.instance_of? String
-          @data_store = @workspace.get_datastore(ds)
-        elsif ds.instance_of? DataStore
-          @data_store = ds
+          @datastore = workspace.get_datastore(ds)
+        elsif ds.instance_of? RGeoServer::DataStore
+          @datastore = ds
         else
           raise RGeoServer::ArgumentError, "Not a valid datastore: #{ds}"
         end
@@ -89,7 +89,7 @@ module RGeoServer
     protected
     # @return [OrderedHash]
     def route
-      { :workspaces => @workspace.name, :datastores => @data_store.name, :featuretypes => @name }
+      { :workspaces => workspace.name, :datastores => datastore.name, :featuretypes => name }
     end
 
     def profile_xml_to_hash profile_xml

@@ -8,7 +8,6 @@ module RGeoServer
       :enabled => 'enabled', 
       :queryable => 'queryable', 
       :path => 'path', 
-      :catalog => 'catalog', 
       :name => 'name', 
       :default_style => 'default_style', 
       :alternate_styles => 'alternate_styles', 
@@ -20,7 +19,6 @@ module RGeoServer
       :enabled => 'true',
       :queryable => 'true',
       :path => '/',
-      :catalog => nil,
       :name => nil,
       :default_style => nil,
       :alternate_styles => [],
@@ -44,7 +42,7 @@ module RGeoServer
 
     # @return [OrderedHash]
     def route
-      { :layers => @name }
+      { :layers => name }
     end
     
     # @param [RGeoServer::Catalog] catalog

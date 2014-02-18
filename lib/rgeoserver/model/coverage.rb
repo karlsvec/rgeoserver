@@ -2,13 +2,10 @@
 module RGeoServer
   # A coverage is a raster based data set which originates from a coverage store.
   class Coverage < ResourceInfo
-
+    attr_reader :workspace, :coveragestore
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = {
-      :catalog => "catalog", 
-      :workspace => "workspace", 
-      :coverage_store => "coverage_store", 
       :enabled => "enabled",
       :name => "name", 
       :title => "title", 
@@ -18,9 +15,6 @@ module RGeoServer
       :metadata_links => "metadataLinks" 
     }
     OBJ_DEFAULT_ATTRIBUTES = {
-      :catalog => nil, 
-      :workspace => nil, 
-      :coverage_store => nil, 
       :enabled => "true",
       :name => nil, 
       :title => nil, 
@@ -52,7 +46,7 @@ module RGeoServer
         ws = options[:workspace]
         if ws.instance_of? String
           @workspace = catalog.get_workspace(ws)
-        elsif ws.instance_of? Workspace
+        elsif ws.instance_of? RGeoServer::Workspace
           @workspace = ws
         else
           raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
@@ -62,7 +56,7 @@ module RGeoServer
         cs = options[:coveragestore]
         if cs.instance_of? String
           @coverage_store = workspace.get_coveragestore(cs)
-        elsif cs.instance_of? CoverageStore
+        elsif cs.instance_of? RGeoServer::CoverageStore
           @coverage_store = cs
         else
           raise RGeoServer::ArgumentError, "Not a valid coveragestore: #{cs}"

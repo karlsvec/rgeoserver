@@ -2,11 +2,10 @@
 module RGeoServer
   # A coverage store is a source of spatial data that is raster based.
   class CoverageStore < ResourceInfo
+    attr_reader :workspace
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = {
-      :catalog => 'catalog', 
-      :workspace => 'workspace', 
       :url => 'url', 
       :data_type => 'type', 
       :name => 'name', 
@@ -14,8 +13,6 @@ module RGeoServer
       :description => 'description'
     }  
     OBJ_DEFAULT_ATTRIBUTES = {
-      :catalog => nil, 
-      :workspace => nil, 
       :url => '', 
       :data_type => 'GeoTIFF', 
       :name => nil, 
@@ -59,7 +56,7 @@ module RGeoServer
     # @param [String] name
     # @return [RGeoServer::Coverage]
     def get_coverage name
-      Coverage.new catalog, :workspace => @workspace, :coverage_store => self, :name => name
+      Coverage.new catalog, :workspace => workspace, :coverage_store => self, :name => name
     end
 
     protected

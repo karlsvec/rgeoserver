@@ -10,46 +10,12 @@ module RGeoServer
     define_model_callbacks :initialize, :only => :after
 
     # @return [RGeoServer::Catalog]
-    attr_accessor :catalog
-    
-    # mapping object parameters to profile elements
-    # attr_accessors
-    # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = {
-      :enabled => 'enabled'
-    }
-    OBJ_DEFAULT_ATTRIBUTES = {
-      :enabled => 'true'
-    }
+    attr_reader :catalog
 
-    protected
-    define_attribute_methods OBJ_ATTRIBUTES.keys
-
-    def self.update_attribute_accessors attributes
-      attributes.each do |attribute, profile_name|
-        class_eval %Q{
-        def #{attribute.to_s}
-          @#{attribute} || profile['#{profile_name.to_s}'] || OBJ_DEFAULT_ATTRIBUTES[:#{attribute}]
-        end
-
-        def #{attribute.to_s}= val
-          #{attribute.to_s}_will_change! unless val == #{attribute.to_s}
-          @#{attribute.to_s} = val
-        end
-      }
-      end
-    end
-
-    public
     # @param [RGeoServer::Catalog] catalog
     def initialize catalog
       @new = true
       @catalog = catalog
-    end
-
-    # @return [String]
-    def to_s
-      "#{self.class}: #{@name} (#{new?}) on #{@catalog}"
     end
 
     # Modify or save the resource
@@ -87,6 +53,7 @@ module RGeoServer
 
     # clear changes
     def clear
+      clear!
       @profile = nil
       @changed_attributes = {}
     end
@@ -99,6 +66,26 @@ module RGeoServer
     end
 
     protected
+    # mapping object parameters to profile elements
+    def self.update_attribute_accessors attributes
+      clear_all_code = "def clear!\n"
+      attributes.each do |k|
+        class_eval %Q{
+        def #{k}
+          @#{k} ||= profile['#{k}'] || OBJ_DEFAULT_ATTRIBUTES[:#{k}]
+        end
+
+        def #{k}= (val)
+          #{k}_will_change! unless val == @#{k}
+          @#{k} = val
+        end
+      }
+        clear_all_code << "  @#{k} = nil\n"
+      end
+      clear_all_code << "end\n"
+      class_eval clear_all_code
+    end
+    
     # Retrieve the resource profile as a hash and cache it
     # @return [Hash]
     def profile
@@ -116,24 +103,26 @@ module RGeoServer
     end
 
     # @param [String] data
+    # @param [String] format
     # @return [Hash]
-    def profile= data, type = :json
-      case type
+    def profile= data, format = :json
+      case format
       when :xml
         @profile = profile_xml_to_hash(data)
       when :json
         @profile = profile_json_to_hash(data)
       else
-        raise NotImplementedError, "profile= does not support #{type}"
+        raise NotImplementedError, "profile= does not support format #{format}"
       end
       @profile.freeze
     end
 
-    # @abstract
-    # @return [Nokogiri::XML]
-    def profile_xml_to_ng xml
-      raise NotImplementedError, 'profile_xml_to_ng is abstract method'
-    end
+    # # @abstract
+    # # @return [Nokogiri::XML]
+    # def profile_xml_to_ng xml
+    #   raise NotImplementedError, 'profile_xml_to_ng is abstract method'
+    # end
+
     # @abstract
     # @return [Hash]
     def profile_xml_to_hash xml

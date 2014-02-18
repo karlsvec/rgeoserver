@@ -1,22 +1,15 @@
-require 'awesome_print'
 module RGeoServer
   # A workspace is a grouping of data stores. More commonly known as a namespace, 
   # it is commonly used to group data that is related in some way.
   class Workspace < ResourceInfo
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = {
-      :enabled => 'enabled', 
-      :catalog => 'catalog', 
-      :name => 'name' 
-    }
+    OBJ_ATTRIBUTES = %w{enabled name}
     OBJ_DEFAULT_ATTRIBUTES = {
-      :enabled => 'true', 
-      :catalog => nil, 
-      :name => nil 
+      :enabled => 'true'
     }
 
-    define_attribute_methods OBJ_ATTRIBUTES.keys
+    define_attribute_methods OBJ_ATTRIBUTES
     update_attribute_accessors OBJ_ATTRIBUTES
 
     # @param [RGeoServer::Catalog] catalog
@@ -32,7 +25,7 @@ module RGeoServer
 
     # @return [OrderedHash]
     def route
-      { :workspaces => @name }
+      { :workspaces => name }
     end
     
     # @return [String]
@@ -44,9 +37,9 @@ module RGeoServer
 
     # @yield [RGeoServer::DataStore]
     def datastores
-      json = ActiveSupport::JSON.decode(@catalog.search :workspaces => @name, :datastores => nil)
-      json['dataStores']['dataStore'].each do |h|
-        yield get_datastore(h['name'])
+      data = ActiveSupport::JSON.decode(catalog.search :workspaces => @name, :datastores => nil)
+      data['dataStores']['dataStore'].each do |h|
+        yield get_datastore(h['name'].to_s.strip)
       end
       nil
     end
@@ -54,7 +47,7 @@ module RGeoServer
     # @param [String] name
     # @return [RGeoServer::DataStore]
     def get_datastore name
-      DataStore.new @catalog, :workspace => self, :name => name
+      DataStore.new catalog, :workspace => self, :name => name
     end
 
     #= Coverages (Raster datasets)
@@ -62,9 +55,9 @@ module RGeoServer
     # @param [String] workspace
     # @yield [RGeoServer::CoverageStore]
     def coveragestores 
-      json = ActiveSupport::JSON.decode(@catalog.search :workspaces => @name, :coveragestores => nil)
-      json['coverageStores']['coverageStore'].each do |h|
-        yield get_coveragestore(h['name'])
+      data = ActiveSupport::JSON.decode(catalog.search :workspaces => @name, :coveragestores => nil)
+      data['coverageStores']['coverageStore'].each do |h|
+        yield get_coveragestore(h['name'].to_s.strip)
       end
       nil
     end
@@ -72,7 +65,7 @@ module RGeoServer
     # @param [String] name
     # @return [RGeoServer::CoverageStore]
     def get_coveragestore name
-      CoverageStore.new @catalog, :workspace => self, :name => name
+      CoverageStore.new catalog, :workspace => self, :name => name
     end
     
     protected
@@ -82,8 +75,8 @@ module RGeoServer
       { 
         :workspace => 
           {
-            :enabled => enabled,
-            :name => name
+            :name => name,
+            :enabled => enabled
           }
       }.to_json
     end
