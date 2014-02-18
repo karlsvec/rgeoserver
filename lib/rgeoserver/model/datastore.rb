@@ -24,9 +24,6 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    # @return [String]
-    attr_accessor :message # XXX: is this needed?
-
     # @return [Hash]
     def route
       { :workspaces => @workspace.name, :datastores => @name }
@@ -72,44 +69,17 @@ module RGeoServer
 
     protected
     def message
-      Nokogiri::XML::Builder.new do |xml|
-        xml.dataStore {
-          xml.name @name
-          xml.enabled @enabled
-          xml.description @description
-          xml.type_ @data_type if data_type_changed? or new?
-          xml.connectionParameters {  # this could be empty
-            connection_parameters.each_pair { |k,v|
-              xml.entry(:key => k) {
-                xml.text v
-              }
-            } unless connection_parameters.nil? or connection_parameters.empty?
-          }
-        }
-      end.doc.to_xml
+      {
+        :name => name, 
+        :type => data_type,
+        :enabled => enabled, 
+        :description => description,
+        :connection_parameters => connection_parameters
+      }.to_json
     end
-
-    def profile_xml_to_hash xml
-      doc = Nokogiri::XML(xml).at_xpath('/dataStore')
-      h = {
-        "name" => doc.at_xpath('name').text.strip,
-        "description" => doc.at_xpath('description').text,
-        "enabled" => doc.at_xpath('enabled').text,
-        'type' => doc.at_xpath('type').text,
-        "connection_parameters" => doc.xpath('connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
-      }
-      # XXX: assume that we know the workspace for <workspace>...</workspace>
-      doc.xpath('featureTypes/atom:link[@rel="alternate"]/@href', 
-                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
-        h["featureTypes"] = begin
-                              response = catalog.do_url l.text
-                              # lazy loading: only loads featuretype names
-                              Nokogiri::XML(response).xpath('//name/text()').collect{ |a| a.text.strip }
-                            rescue RestClient::ResourceNotFound
-                              []
-                            end.freeze
-      end
-      h
+    
+    def profile_json_to_hash json
+      ActiveSupport::JSON.decode(json)['dataStore']
     end
   end
 end

@@ -140,8 +140,8 @@ module RGeoServer
     # @return [Hash]
     def headers
       { 
-        :accept => 'text/xml',
-        :content_type => 'text/xml'
+        :accept => 'application/json',
+        :content_type => 'application/json'
       }
     end
     

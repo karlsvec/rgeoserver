@@ -13,8 +13,8 @@ describe RGeoServer::Catalog do
   describe "init" do
     it "config" do
       @c.config.include?(:url).should == true
-      @c.headers[:accept].should == 'text/xml'
-      @c.headers[:content_type].should == 'text/xml'
+      @c.headers[:accept].should == 'application/json'
+      @c.headers[:content_type].should == 'application/json'
     end
   end
   
