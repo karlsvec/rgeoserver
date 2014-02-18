@@ -3,7 +3,9 @@ require 'rgeo/shapefile'
 require 'zip'
 
 module RGeoServer
+  # some basic metadata about Shapefile
   class ShapefileInfo
+    # error
     class ShapefileInfoGeometryNotExpected < StandardError
       def initialize geometry_type
         @geometry_type = geometry_type

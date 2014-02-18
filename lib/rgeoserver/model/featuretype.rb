@@ -4,7 +4,9 @@ module RGeoServer
   # In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store.
   # In other cases, like PostGIS, the relationship of feature type to data store is many-to-one, with
   # each feature type corresponding to a table in the database.
-  class FeatureType < ResourceInfo    
+  class FeatureType < ResourceInfo  
+    # attr_accessors
+    # @see http://geoserver.org/display/GEOS/Catalog+Design  
     OBJ_ATTRIBUTES = {
       :catalog => "catalog", 
       :name => "name", 
@@ -41,23 +43,19 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    # see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
+    # @see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
     METADATA_TYPES = {
       'ISO19139' => 'text/xml',
       'TC211' => 'text/xml'
     }
     
-    # see https://github.com/geoserver/geoserver/blob/master/src/main/src/main/java/org/geoserver/catalog/ProjectionPolicy.java
+    # @see https://github.com/geoserver/geoserver/blob/master/src/main/src/main/java/org/geoserver/catalog/ProjectionPolicy.java
     PROJECTION_POLICIES = {
       :force => 'FORCE_DECLARED',
       :reproject => 'REPROJECT_TO_DECLARED',
       :keep => 'NONE'
     }
     
-    def route
-      { :workspaces => @workspace.name, :datastores => @data_store.name, :featuretypes => @name }
-    end
-
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     def initialize catalog, options
@@ -89,6 +87,10 @@ module RGeoServer
     end
 
     protected
+    # @return [OrderedHash]
+    def route
+      { :workspaces => @workspace.name, :datastores => @data_store.name, :featuretypes => @name }
+    end
 
     def profile_xml_to_hash profile_xml
       doc = profile_xml_to_ng profile_xml
@@ -146,10 +148,6 @@ module RGeoServer
       not bbox.nil? and bbox.valid? and not latlon_bounds['crs'].empty?
     end
     
-    def update_params name_route = name
-      super(name_route)
-      # recalculate='nativebbox,latlonbbox'
-    end
     def to_mimetype(type, default = 'text/xml')
       k = type.to_s.strip.upcase
       return METADATA_TYPES[k] if METADATA_TYPES.include? k
@@ -157,7 +155,7 @@ module RGeoServer
     end
 
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new do |xml|
         xml.featureType {
           xml.nativeName native_name.nil?? name : native_name if new? # on new only
           xml.name name
@@ -215,14 +213,10 @@ module RGeoServer
             }
           end
         }
-      end
-      @message = builder.doc.to_xml
-      @message
+      end.doc.to_xml
     end
 
-
     private
-    
     def get_projection_policy_sym value
       v = value.strip.upcase
       if PROJECTION_POLICIES.has_value? v

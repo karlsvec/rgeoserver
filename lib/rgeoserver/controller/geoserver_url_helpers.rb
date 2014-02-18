@@ -37,6 +37,7 @@ module RGeoServer
       %w{workspaces}
     ].map {|x| x.map(&:to_sym)}
     
+    # Valid URI values for REST API
     URI_REGEX_VALUES = [
       { :about => /^(manifest|version)$/ },
       { :settings => /^(|contact)$/ },
@@ -66,25 +67,25 @@ module RGeoServer
     
     public
     # @see http://docs.geoserver.org/latest/en/user/rest/api/
-    # @param [Hash] base examples:
-    # - { :settings => nil }
-    # - { :layers => name }
-    # - { :styles => name }
-    # - { :workspaces => nil }
-    # - { :workspaces => name }
-    # - { :workspaces => name, :datastores => nil }
-    # - { :workspaces => name, :datastores => name, :featuretype => nil }
-    # - { :workspaces => name, :datastores => name, :featuretype => name }
-    # @param [Hash] options
+    # @param [Hash] base for example:
+    #   - { :settings => nil }
+    #   - { :layers => name }
+    #   - { :styles => name }
+    #   - { :workspaces => nil }
+    #   - { :workspaces => name }
+    #   - { :workspaces => name, :datastores => nil }
+    #   - { :workspaces => name, :datastores => name, :featuretype => nil }
+    #   - { :workspaces => name, :datastores => name, :featuretype => name }
+    # @param [Hash] options for query string
     # @return [String] baseURL for REST API, e.g.,:
-    # - settings
-    # - layers/_name_
-    # - styles/_name_
-    # - workspaces
-    # - workspaces/_name_
-    # - workspaces/_name_/datastores
-    # - workspaces/_name_/datastores/_name_/featuretype
-    # - workspaces/_name_/datastores/_name_/featuretype/_name_
+    #   - settings
+    #   - layers/_name_
+    #   - styles/_name_
+    #   - workspaces
+    #   - workspaces/_name_
+    #   - workspaces/_name_/datastores
+    #   - workspaces/_name_/datastores/_name_/featuretype
+    #   - workspaces/_name_/datastores/_name_/featuretype/_name_
     def url_for base, options = {}
       raise RGeoServer::ArgumentError, 'base must be Hash' unless base.is_a? Hash and not base.empty?
       raise RGeoServer::ArgumentError, 'options must be Hash' unless options.is_a? Hash

@@ -32,12 +32,15 @@ module RGeoServer
     @@catalog ||= RGeoServer::Catalog.new (opts.nil?? RGeoServer::Config[:geoserver] : opts)
   end
 
+  # generic error for module
   class RGeoServer::Error < StandardError
   end
 
+  # client/server error
   class RGeoServer::InvalidRequest < RGeoServer::Error
   end
   
+  # API error
   class RGeoServer::ArgumentError < RGeoServer::Error
   end
 

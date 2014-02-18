@@ -12,14 +12,25 @@ module RGeoServer
     include ActiveSupport::Benchmarkable
 
     public
+    # Instantiates a REST client with passed configuration
     # @param [Hash] config
-    # @return [RestClient] cached or new client
+    # @option config [String] :url
+    # @option config [String] :user
+    # @option config [String] :password
+    # @option config [Hash] :headers
+    # @option config [Integer] :timeout
+    # @option config [Integer] :open_timeout
+    # @return [RestClient::Resource] cached or new client
+    # @raise [RGeoServer::ArgumentError]
     def client config = {}
       @client ||= rest_client(config.merge(self.config[:restclient]).merge(self.config))
     end
 
+    # Instantiates a GeoWebCache client with passed configuration
     # @param [Hash] config
-    # @return [RestClient] cached or new client
+    # @option options [String] :url
+    # @option options [String] :geowebcache_url
+    # @return [RestClient::Resource] cached or new client
     def gwc_client config = {}
       unless @gwc_client.is_a? RestClient::Resource
         c = config.merge(self.config[:restclient]).merge(self.config)
@@ -33,9 +44,11 @@ module RGeoServer
       @gwc_client
     end
 
-    # Search a resource in the catalog
+    # Search for a resource in the catalog
     # @param [OrderedHash] what
-    # @param [Hash] options
+    # @param [Hash] options for `url_for`
+    # @option options [String] :headers
+    # @return [String] response
     def search what, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
@@ -53,7 +66,8 @@ module RGeoServer
     # @param [String] data payload 
     # @param [String] method 
     # @param [Hash] options for request 
-    # @param [RestClient::Resource] client 
+    # @param [RestClient::Resource] client
+    # @return [String] response 
     def do_url sub_url, data = nil, method = :get, options = {}, client = client
       sub_url.slice! client.url # if full path equivalence
       request = client[sub_url] 
@@ -75,7 +89,8 @@ module RGeoServer
     # Add resource to the catalog
     # @param [String] what
     # @param [String] data
-    # @param [Hash] options
+    # @param [Hash] options for `url_for`
+    # @return [String] response
     def add what, data, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
@@ -92,7 +107,8 @@ module RGeoServer
     # Modify resource in the catalog
     # @param [String] what
     # @param [String] data
-    # @param [Hash] options
+    # @param [Hash] options for `url_for`
+    # @return [String] response
     def modify what, data, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
@@ -106,9 +122,10 @@ module RGeoServer
       
     end
 
-    # Purge resource from the catalog. Options can include recurse=true or false
+    # Purge resource from the catalog.
     # @param [OrderedHash] what
-    # @param [Hash] options
+    # @param [Hash] options for `url_for`
+    # @return [String] response
     def purge what, options = {}
       request = client[url_for(what, options)]
       begin
@@ -120,6 +137,7 @@ module RGeoServer
       end
     end
     
+    # @return [Hash]
     def headers
       { 
         :accept => 'text/xml',
@@ -128,9 +146,6 @@ module RGeoServer
     end
     
     private
-    # Instantiates a rest client with passed configuration
-    # @param [Hash] config configuration 
-    # return [RestClient::Resource]
     def rest_client config
       raise RGeoServer::ArgumentError, "#{self.class}#rest_client requires :url" if config[:url].nil?
       RestClient::Resource.new(

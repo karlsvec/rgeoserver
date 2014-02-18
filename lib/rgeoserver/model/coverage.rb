@@ -3,6 +3,8 @@ module RGeoServer
   # A coverage is a raster based data set which originates from a coverage store.
   class Coverage < ResourceInfo
 
+    # attr_accessors
+    # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = {
       :catalog => "catalog", 
       :workspace => "workspace", 
@@ -29,7 +31,7 @@ module RGeoServer
     } 
    
     # @see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
-    @@metadata_types = {
+    METADATA_TYPES = {
       'ISO19139' => 'application/vnd.iso.19139+xml',
       'TC211' => 'application/vnd.iso.19139+xml'
     }
@@ -37,11 +39,41 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    def to_mimetype(type, default = 'text/xml')
-      return @@metadata_types[type.upcase] if @@metadata_types.include?(type.upcase) 
-      default
+    # @param [RGeoServer::Catalog] catalog
+    # @param [Hash] options
+    # @option options [Workspace|String] :workspace
+    # @option options [CoverageStore|String] :coverage_store 
+    # @option options [String] :name 
+    # @raise [RGeoServer::ArgumentError]
+    def initialize catalog, options 
+      super(catalog)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+        ws = options[:workspace]
+        if ws.instance_of? String
+          @workspace = catalog.get_workspace(ws)
+        elsif ws.instance_of? Workspace
+          @workspace = ws
+        else
+          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
+        end
+      
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
+        cs = options[:coveragestore]
+        if cs.instance_of? String
+          @coverage_store = workspace.get_coveragestore(cs)
+        elsif cs.instance_of? CoverageStore
+          @coverage_store = cs
+        else
+          raise RGeoServer::ArgumentError, "Not a valid coveragestore: #{cs}"
+        end
+
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
+      end
     end
 
+    protected
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.coverage {
@@ -70,38 +102,6 @@ module RGeoServer
         }
       end
       message = builder.doc.to_xml 
-    end
-
-    # @param [RGeoServer::Catalog] catalog
-    # @param [Hash] options
-    # @option options [String] :workspace required
-    # @option options [String] :coverage_store 
-    def initialize catalog, options 
-      super(catalog)
-      run_callbacks :initialize do
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
-        ws = options[:workspace]
-        if ws.instance_of? String
-          @workspace = catalog.get_workspace(ws)
-        elsif ws.instance_of? Workspace
-          @workspace = ws
-        else
-          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
-        end
-      
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
-        cs = options[:coveragestore]
-        if cs.instance_of? String
-          @coverage_store = workspace.get_coveragestore(cs)
-        elsif cs.instance_of? CoverageStore
-          @coverage_store = cs
-        else
-          raise RGeoServer::ArgumentError, "Not a valid coveragestore: #{cs}"
-        end
-
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        @name = options[:name].to_s.strip
-      end
     end
 
     # @return [Hash] extraction from GeoServer XML for this coverage
@@ -144,6 +144,11 @@ module RGeoServer
           }
         },
       }.freeze
+    end
+
+    def to_mimetype(type, default = 'text/xml')
+      return METADATA_TYPES[type.upcase] if METADATA_TYPES.include?(type.upcase) 
+      default
     end
 
   end

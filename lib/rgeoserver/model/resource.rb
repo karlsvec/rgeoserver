@@ -1,6 +1,6 @@
 
 module RGeoServer
-
+    # base class for all GeoServer resources
     class ResourceInfo
 
       include ActiveModel::Dirty
@@ -9,9 +9,12 @@ module RGeoServer
       define_model_callbacks :save, :destroy
       define_model_callbacks :initialize, :only => :after
 
+      # @return [RGeoServer::Catalog]
       attr_accessor :catalog
       
       # mapping object parameters to profile elements
+      # attr_accessors
+      # @see http://geoserver.org/display/GEOS/Catalog+Design
       OBJ_ATTRIBUTES = {
         :enabled => 'enabled'
       }
@@ -19,6 +22,7 @@ module RGeoServer
         :enabled => 'true'
       }
 
+      protected
       define_attribute_methods OBJ_ATTRIBUTES.keys
 
       def self.update_attribute_accessors attributes
@@ -36,11 +40,14 @@ module RGeoServer
         end
       end
 
+      public
+      # @param [RGeoServer::Catalog] catalog
       def initialize catalog
         @new = true
         @catalog = catalog
       end
 
+      # @return [String]
       def to_s
         "#{self.class}: #{@name} (#{new?}) on #{@catalog}"
       end
@@ -63,7 +70,7 @@ module RGeoServer
 
       # Purge resource from Geoserver Catalog
       # @param [Hash] options
-      # @return [RGeoServer::ResourceInfo] `self`
+      # @return [RGeoServer::ResourceInfo]
       def delete options = {}
         run_callbacks :destroy do
           @catalog.purge(route, options) unless new?
@@ -78,17 +85,20 @@ module RGeoServer
         @new
       end
 
+      # clear changes
       def clear
         @profile = nil
         @changed_attributes = {}
       end
       
+      # @return [RGeoServer::ResourceInfo]
       def refresh
         clear
         profile
         self
       end
 
+      protected
       # Retrieve the resource profile as a hash and cache it
       # @return [Hash]
       def profile
@@ -105,6 +115,8 @@ module RGeoServer
         @profile
       end
 
+      # @param [String] data
+      # @return [Hash]
       def profile= data, type = :xml
         case type
         when :xml
@@ -117,22 +129,28 @@ module RGeoServer
         @profile.freeze
       end
 
+      # @abstract
+      # @return [Nokogiri::XML]
       def profile_xml_to_ng xml
         raise NotImplementedError, 'profile_xml_to_ng is abstract method'
       end
-
+      # @abstract
+      # @return [Hash]
       def profile_xml_to_hash xml
         raise NotImplementedError, 'profile_xml_to_hash is abstract method'
       end
-
+      # @abstract
+      # @return [Hash]
       def profile_json_to_hash json
         raise NotImplementedError, 'profile_json_to_hash is abstract method'
       end
-
+      # @abstract
+      # @return [String]
       def message
         raise NotImplementedError, 'message is abstract method'
       end
-      
+      # @abstract
+      # @return [OrderedHash]
       def route
         raise NotImplementedError, 'route is abstract method'
       end

@@ -1,6 +1,7 @@
 require 'rgeo'
 
 module RGeoServer
+  # implements a min/max x/y bounding box rectangle
   class BoundingBox
     attr_reader :minx, :miny, :maxx, :maxy
 
@@ -54,10 +55,12 @@ module RGeoServer
       @empty = false
     end
 
+    # @return [Array]
     def min
       [minx, miny]
     end
 
+    # @return [Array]
     def max
       [maxx, maxy]
     end
@@ -88,11 +91,12 @@ module RGeoServer
       width * height
     end
     
-    # @return true if bounding box has non-zero area
+    # @return [Boolean] true if bounding box has non-zero area
     def valid?
       area > 0
     end
 
+    # @return [RGeo::Envelope]
     def to_geometry
       factory = RGeo::Cartesian::Factory.new
 
@@ -107,6 +111,7 @@ module RGeoServer
       line_string.envelope
     end
     
+    # @return [Hash]
     def to_h
       {
         :minx => minx,
@@ -116,10 +121,12 @@ module RGeoServer
       }
     end
 
+    # @return [Array]
     def to_a
       [minx, miny, maxx, maxy]
     end
 
+    # @return [String]
     def to_s
       to_a.join(', ')
     end

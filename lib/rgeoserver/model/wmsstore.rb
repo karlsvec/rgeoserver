@@ -1,6 +1,6 @@
 
 module RGeoServer
-
+    # @deprecated
     class WmsStore < ResourceInfo
       #   
       # define_attribute_methods [:catalog, :workspace, :name] 

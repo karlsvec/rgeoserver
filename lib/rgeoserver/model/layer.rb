@@ -2,7 +2,8 @@
 module RGeoServer
   # A layer is a published resource (feature type or coverage).
   class Layer < ResourceInfo
-
+    # attr_accessors
+    # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = { 
       :enabled => 'enabled', 
       :queryable => 'queryable', 
@@ -41,11 +42,11 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
+    # @return [OrderedHash]
     def route
       { :layers => @name }
     end
     
-
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
     # @option options [String] :name required

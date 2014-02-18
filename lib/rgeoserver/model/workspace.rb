@@ -3,7 +3,8 @@ module RGeoServer
   # A workspace is a grouping of data stores. More commonly known as a namespace, 
   # it is commonly used to group data that is related in some way.
   class Workspace < ResourceInfo
-
+    # attr_accessors
+    # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = {
       :enabled => 'enabled', 
       :catalog => 'catalog', 
@@ -19,7 +20,8 @@ module RGeoServer
     update_attribute_accessors OBJ_ATTRIBUTES
 
     # @param [RGeoServer::Catalog] catalog
-    # @param [Hash] options `:name`
+    # @option options [String] :name
+    # @return [RGeoServer::Workspace]
     def initialize catalog, options
       super(catalog)
       run_callbacks :initialize do
@@ -28,10 +30,12 @@ module RGeoServer
       end
     end
 
+    # @return [OrderedHash]
     def route
       { :workspaces => @name }
     end
     
+    # @return [String]
     def to_s
       "#{self.class}: #{@name} (new?: #{@new})"
     end

@@ -2,7 +2,8 @@
 module RGeoServer
   # A data store is a source of spatial data that is vector based. It can be a file in the case of a Shapefile, a database in the case of PostGIS, or a server in the case of a remote Web Feature Service.
   class DataStore < ResourceInfo
-
+    # attr_accessors
+    # @see http://geoserver.org/display/GEOS/Catalog+Design
     OBJ_ATTRIBUTES = {
       :workspace => 'workspace', 
       :connection_parameters => "connection_parameters",
@@ -23,14 +24,20 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    attr_accessor :message
+    # @return [String]
+    attr_accessor :message # XXX: is this needed?
 
+    # @return [Hash]
     def route
       { :workspaces => @workspace.name, :datastores => @name }
     end
 
     # @param [RGeoServer::Catalog] catalog
-    # @param [RGeoServer::Workspace|String] options `:workspace`, `:name`
+    # @param [Hash] options 
+    # @option options [String | RGeoServer::Workspace] :workspace
+    # @option options [String] :name
+    # @return [RGeoServer::DataStore]
+    # @raise [RGeoServer::ArgumentError]
     def initialize catalog, options
       super(catalog)
       run_callbacks :initialize do
@@ -51,7 +58,7 @@ module RGeoServer
 
     # @yield [RGeoServer::FeatureType]
     def featuretypes
-      doc = Nokogiri::XML(catalog.search :workspaces => workspace.name, :datastores => name, :featuretypes => nil)
+      doc = Nokogiri::XML(@catalog.search :workspaces => workspace.name, :datastores => name, :featuretypes => nil)
       doc.xpath('/featureTypes/featureType/name').each do |n| 
         yield get_featuretype(n.text.strip)
       end
@@ -60,17 +67,17 @@ module RGeoServer
     # @param [String] name
     # @return [RGeoServer::FeatureType]
     def get_featuretype name
-      FeatureType.new catalog, :workspace => workspace, :datastore => self, :name => name
+      FeatureType.new @catalog, :workspace => @workspace, :datastore => self, :name => name
     end
 
     protected
     def message
       Nokogiri::XML::Builder.new do |xml|
         xml.dataStore {
-          xml.name name
-          xml.enabled enabled
-          xml.description description
-          xml.type_ data_type if data_type_changed? or new?
+          xml.name @name
+          xml.enabled @enabled
+          xml.description @description
+          xml.type_ @data_type if data_type_changed? or new?
           xml.connectionParameters {  # this could be empty
             connection_parameters.each_pair { |k,v|
               xml.entry(:key => k) {
@@ -83,16 +90,16 @@ module RGeoServer
     end
 
     def profile_xml_to_hash xml
-      doc = Nokogiri::XML(xml).at_xpath('/datastore')
+      doc = Nokogiri::XML(xml).at_xpath('/dataStore')
       h = {
-        "name" => doc.at_xpath('//name').text.strip,
-        "description" => doc.at_xpath('//description').text,
-        "enabled" => doc.at_xpath('//enabled').text,
-        'type' => doc.at_xpath('//type').text,
-        "connection_parameters" => doc.xpath('//connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
+        "name" => doc.at_xpath('name').text.strip,
+        "description" => doc.at_xpath('description').text,
+        "enabled" => doc.at_xpath('enabled').text,
+        'type' => doc.at_xpath('type').text,
+        "connection_parameters" => doc.xpath('connectionParameters/entry').inject({}){ |x, e| x.merge(e['key']=> e.text.to_s) }
       }
       # XXX: assume that we know the workspace for <workspace>...</workspace>
-      doc.xpath('//featureTypes/atom:link[@rel="alternate"]/@href', 
+      doc.xpath('featureTypes/atom:link[@rel="alternate"]/@href', 
                 "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each do |l|
         h["featureTypes"] = begin
                               response = catalog.do_url l.text

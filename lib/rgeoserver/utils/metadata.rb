@@ -1,4 +1,5 @@
 module RGeoServer
+  # metadata utilities
   class Metadata
     
     # Example: 

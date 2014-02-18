@@ -2,16 +2,19 @@ module RGeoServer
   # This class represents the main class of the data model, and provides all REST APIs to GeoServer.
   # @see http://geoserver.org/display/GEOS/Catalog+Design
   # @see http://docs.geoserver.org/stable/en/user/rest/api/
-
   class Catalog
     include RGeoServer::RestApiClient
 
+    # @return [Hash]
     attr_reader :config
 
-    # @param [OrderedHash] options if nil, uses RGeoServer::Config[:geoserver] loaded from $RGEOSERVER_CONFIG or config/defaults.yml
-    # options :url
-    # options :user
-    # options :password
+    # @param [OrderedHash] options if nil, uses RGeoServer::Config\[:geoserver] loaded from 
+    #     \$RGEOSERVER_CONFIG or config/defaults.yml
+    # @option options [String] :url
+    # @option options [String] :user
+    # @option options [String] :password
+    # @option options [String] :logfile
+    # @raise [RGeoServer::ArgumentError]
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
       unless config.include?(:url)
@@ -20,11 +23,10 @@ module RGeoServer
       RestClient.log = config[:logfile] || nil
     end
 
+    # @return [String]
     def to_s
       "#{self.class}: #{config[:url]}"
     end
-
-    #= Workspaces
 
     # @yield [RGeoServer::Workspace]
     def workspaces
@@ -40,9 +42,7 @@ module RGeoServer
       Workspace.new self, :name => name
     end
 
-    #= Layers
-
-    # @return [RGeoServer::Layer]
+    # @yield [RGeoServer::Layer]
     def layers
       doc = Nokogiri::XML(self.search :layers => nil)
       doc.xpath('/layers/layer/name').each do |n|
@@ -55,8 +55,6 @@ module RGeoServer
     def get_layer name
       Layer.new self, :name => name
     end
-
-    #= Styles (SLD Style Layer Descriptor)
 
     # @yield [RGeoServer::Style]
     def styles
