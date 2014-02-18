@@ -85,27 +85,27 @@ module RGeoServer
     # - workspaces/_name_/datastores/_name_/featuretype
     # - workspaces/_name_/datastores/_name_/featuretype/_name_
     def url_for base, options = {}
-      raise GeoServerArgumentError, 'base must be Hash' unless base.is_a? Hash and not base.empty?
-      raise GeoServerArgumentError, 'options must be Hash' unless options.is_a? Hash
+      raise RGeoServer::ArgumentError, 'base must be Hash' unless base.is_a? Hash and not base.empty?
+      raise RGeoServer::ArgumentError, 'options must be Hash' unless options.is_a? Hash
 
       # convert all keys to symbols
       base = Hash[base.map {|k,v| [k.to_sym, v]}]
 
       # verify that all paths are correct
       if URI_SEQUENCES.select {|k| k == base.keys }.empty?
-        raise GeoServerArgumentError, "Invalid REST URI syntax: #{base}" 
+        raise RGeoServer::ArgumentError, "Invalid REST URI syntax: #{base}" 
       end
 
       # preceeding arguments (all but last) cannot be nil
       if base.size > 1 and base.values.take(base.size - 1).map(&:nil?).any?
-        raise GeoServerArgumentError, "Preceeding arguments cannot be nil: #{base}"
+        raise RGeoServer::ArgumentError, "Preceeding arguments cannot be nil: #{base}"
       end
       
       # validate values using regular expressions
       URI_REGEX_VALUES.each do |h|
         if h.keys == base.keys
           h.each do |k, regex|
-            raise GeoServerArgumentError, "Invalid value: #{k} => #{base[k]}" unless regex.match(base[k].to_s)
+            raise RGeoServer::ArgumentError, "Invalid value: #{k} => #{base[k]}" unless regex.match(base[k].to_s)
           end
         end
       end

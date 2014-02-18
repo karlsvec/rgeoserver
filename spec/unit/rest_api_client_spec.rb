@@ -25,13 +25,13 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:abc => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         
         RGeoServer::RestApiClient::URI_SEQUENCES.each do |seq|
           if seq.size > 1
             expect {
               @client.url_for(Hash[seq.map {|k| [k, nil]}])
-            }.to raise_error RGeoServer::GeoServerArgumentError
+            }.to raise_error RGeoServer::ArgumentError
           end
         end
       end
@@ -49,10 +49,10 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:workspaces => 'default', :settings => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'default', :abc => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
     end
 
@@ -71,28 +71,28 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:datastores => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:datastores => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:abc => 'abc', :datastores => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :datastores => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :datastores => 'def', :file => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :datastores => 'def', :external => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :datastores => 'def', :url => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :datastores => 'def', :xyz => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
     end
     
@@ -108,22 +108,22 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:datastores => nil, :featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :datastores => nil, :featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :datastores => nil, :featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :datastores => 'abc', :featuretypes => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
 
     end
@@ -148,19 +148,19 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:workspaces => 'abc', :layers => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :layers => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :layers => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:abc => 'def', :layers => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:layers => 'abc', :abc => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -204,28 +204,28 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:coveragestores => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:abc => 'abc', :coveragestores => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :coveragestores => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :coveragestores => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :coveragestores => 'abc', :file => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coveragestores => 'def', :file => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coveragestores => 'def', :external => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coveragestores => 'def', :url => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
     end
 
@@ -242,22 +242,22 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:coverages => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coverages => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coverages => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coveragestores => nil, :coverages => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => 'abc', :coveragestores => '', :coverages => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:workspaces => nil, :coveragestores => 'abc', :coverages => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -272,13 +272,13 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:about => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:about => '')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:about => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -292,7 +292,7 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:fonts => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -306,7 +306,7 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:reload => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -320,7 +320,7 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:reset => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -335,7 +335,7 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:settings => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -354,16 +354,16 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:services => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:services => '', :wcs => 'abc', :settings => nil)
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:services => '', :wcs => '', :settings => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
         expect { 
           @client.url_for(:services => '', :wcs => '', :workspaces => 'abc', :settings => 'xyz')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end
@@ -377,7 +377,7 @@ describe RGeoServer::RestApiClient do
       it 'exceptions' do
         expect { 
           @client.url_for(:templates => 'abc')
-        }.to raise_error RGeoServer::GeoServerArgumentError
+        }.to raise_error RGeoServer::ArgumentError
       end
       
     end

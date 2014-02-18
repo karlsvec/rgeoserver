@@ -15,7 +15,7 @@ module RGeoServer
     def initialize options = nil
       @config = options || RGeoServer::Config[:geoserver]
       unless config.include?(:url)
-        raise GeoServerArgumentError, "Catalog: Requires :url option: #{config}"
+        raise RGeoServer::ArgumentError, "Catalog: Requires :url option: #{config}"
       end
       RestClient.log = config[:logfile] || nil
     end
@@ -36,7 +36,7 @@ module RGeoServer
 
     # @param [String] name
     # @return [RGeoServer::Workspace]
-    def get_workspace name
+    def get_workspace name = 'default'
       Workspace.new self, :name => name
     end
 

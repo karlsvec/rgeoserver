@@ -94,12 +94,12 @@ module RGeoServer
     # @option options [Array<String>] :alternate_styles
     def initialize catalog, options
       super(catalog)
-      _run_initialize_callbacks do
-        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
         if options[:name].instance_of? Layer
-          name = options[:name].name
+          @name = options[:name].name
         else
-          name = options[:name].to_s.strip
+          @name = options[:name].to_s.strip
         end
       end
     end
@@ -108,7 +108,7 @@ module RGeoServer
       if r.is_a?(RGeoServer::Coverage) || r.is_a?(RGeoServer::FeatureType)
         @resource = r
       else
-        raise GeoServerArgumentError, "Unknown resource type: #{r.class}"
+        raise RGeoServer::ArgumentError, "Unknown resource type: #{r.class}"
       end
     end
 
@@ -131,7 +131,7 @@ module RGeoServer
             
             return ft
           else
-            raise GeoServerArgumentError, "Unknown resource type: #{data_type}"
+            raise RGeoServer::ArgumentError, "Unknown resource type: #{data_type}"
           end
         else
           nil
@@ -187,7 +187,7 @@ module RGeoServer
     # Return full name of resource with namespace prefix
     def prefixed_name
       return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
-      raise GeoServerArgumentError, "Workspace is not defined for this resource"
+      raise RGeoServer::ArgumentError, "Workspace is not defined for this resource"
     end
 
     #= GeoWebCache Operations for this layer

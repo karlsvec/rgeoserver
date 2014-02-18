@@ -78,29 +78,29 @@ module RGeoServer
     # @option options [String] :coverage_store 
     def initialize catalog, options 
       super(catalog)
-      _run_initialize_callbacks do
-        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
         ws = options[:workspace]
         if ws.instance_of? String
-          workspace = catalog.get_workspace(ws)
+          @workspace = catalog.get_workspace(ws)
         elsif ws.instance_of? Workspace
-          workspace = ws
+          @workspace = ws
         else
-          raise GeoServerArgumentError, "Not a valid workspace: #{ws}"
+          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
         end
-        
-        raise GeoServerArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
+      
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
         cs = options[:coveragestore]
         if cs.instance_of? String
-          coverage_store = workspace.get_coveragestore(cs)
+          @coverage_store = workspace.get_coveragestore(cs)
         elsif cs.instance_of? CoverageStore
-          coverage_store = cs
+          @coverage_store = cs
         else
-          raise GeoServerArgumentError, "Not a valid coveragestore: #{cs}"
+          raise RGeoServer::ArgumentError, "Not a valid coveragestore: #{cs}"
         end
 
-        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        name = options[:name].to_s.strip
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
       end
     end
 

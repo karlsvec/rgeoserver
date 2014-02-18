@@ -32,10 +32,10 @@ module RGeoServer
     # @param [Hash] options `:name`
     def initialize catalog, options
       super(catalog)
-      _run_initialize_callbacks do
-        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        name = options[:name].to_s.strip
-      end        
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
+      end
     end
     
     #= Data Stores (Vector datasets)

@@ -29,19 +29,19 @@ module RGeoServer
     # @param [RGeoServer::Workspace|String] options `:workspace`, `:name`
     def initialize catalog, options
       super(catalog)
-      _run_initialize_callbacks do
-        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
         ws = options[:workspace]
         if ws.instance_of? String
-          workspace = catalog.get_workspace(ws)
+          @workspace = catalog.get_workspace(ws)
         elsif ws.instance_of? Workspace
-          workspace = ws
+          @workspace = ws
         else
-          raise GeoServerArgumentError, "Not a valid workspace: #{ws}"
+          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
         end
-        
-        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        name = options[:name].to_s.strip
+      
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
       end
     end
 

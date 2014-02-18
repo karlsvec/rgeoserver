@@ -129,29 +129,29 @@ module RGeoServer
     # @param [Hash] options
     def initialize catalog, options
       super(catalog)
-      _run_initialize_callbacks do
-        raise GeoServerArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
         ws = options[:workspace]
         if ws.instance_of? String
-          workspace = catalog.get_workspace(ws)
+          @workspace = catalog.get_workspace(ws)
         elsif ws.instance_of? Workspace
-          workspace = ws
+          @workspace = ws
         else
-          raise GeoServerArgumentError, "Not a valid workspace: #{ws}"
+          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
         end
-        
-        raise GeoServerArgumentError, "#{self.class}.new requires :datastore option" unless options.include?(:datastore)
+      
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :datastore option" unless options.include?(:datastore)
         ds = options[:datastore]
         if ds.instance_of? String
-          data_store = workspace.get_datastore(ds)
+          @data_store = workspace.get_datastore(ds)
         elsif ds.instance_of? DataStore
-          data_store = ds
+          @data_store = ds
         else
-          raise GeoServerArgumentError, "Not a valid datastore: #{ds}"
+          raise RGeoServer::ArgumentError, "Not a valid datastore: #{ds}"
         end
 
-        raise GeoServerArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        name = options[:name].to_s.strip
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
       end
     end
 
@@ -223,7 +223,7 @@ module RGeoServer
       if PROJECTION_POLICIES.has_value? v
         PROJECTION_POLICIES.invert[v]
       else
-        raise GeoServerArgumentError, "Invalid PROJECTION_POLICY: #{v}"
+        raise RGeoServer::ArgumentError, "Invalid PROJECTION_POLICY: #{v}"
       end
     end
 
@@ -233,7 +233,7 @@ module RGeoServer
       if PROJECTION_POLICIES.has_key? k
         PROJECTION_POLICIES[k]
       else
-        raise GeoServerArgumentError, "Invalid PROJECTION_POLICY: #{k}"
+        raise RGeoServer::ArgumentError, "Invalid PROJECTION_POLICY: #{k}"
       end
     end
   end

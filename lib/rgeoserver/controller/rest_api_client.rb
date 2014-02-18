@@ -11,21 +11,7 @@ module RGeoServer
     include RGeoServer::GeoServerUrlHelpers
     include ActiveSupport::Benchmarkable
 
-    # Instantiates a rest client with passed configuration
-    # @param [Hash] config configuration 
-    # return [RestClient::Resource]
-    def rest_client config
-      raise GeoServerArgumentError, "#{self.class}#rest_client requires :url" if config[:url].nil?
-      RestClient::Resource.new(
-        config[:url], 
-        :user => config[:user], 
-        :password => config[:password], 
-        :headers => config[:headers] || headers, 
-        :timeout => (config[:timeout] || 300).to_i,
-        :open_timeout => (config[:open_timeout] || 60).to_i
-      )
-    end
-
+    public
     # @param [Hash] config
     # @return [RestClient] cached or new client
     def client config = {}
@@ -58,13 +44,14 @@ module RGeoServer
     # @param [OrderedHash] what
     # @param [Hash] options
     def search what, options = {}
-      resources = client[url_for(what, options)]
-      resources.options[:headers] = headers
+      request = client[url_for(what, options)]
+      request.options[:headers] = headers
       begin
-        return resources.get
-      rescue RestClient::InternalServerError => e
-        log_error e
-        raise GeoServerInvalidRequest, "Error listing #{what.inspect}. See $logger for details"
+        log_debug "#{self.class}#search: #{what}"
+        request.get
+      rescue RestClient::ExceptionWithResponse => e
+        log_error e.response
+        raise RGeoServer::InvalidRequest, "#{self.class}#search: #{what}: #{e.inspect}"
       end
     end
 
@@ -76,49 +63,53 @@ module RGeoServer
     # @param [Hash] options for request 
     def do_url sub_url, method = :get, data = nil, options = {}, client = client
       sub_url.slice! client.url
-      fetcher = client[sub_url] 
-      fetcher.options.merge(options)
+      request = client[sub_url] 
+      request.options.merge(options)
       begin
-        return fetcher.get if method == :get  
-        fetcher.send method, data 
-      rescue RestClient::InternalServerError => e 
-        log_error e
-        raise GeoServerInvalidRequest, "Error fetching URL: #{sub_url}. See $logger for details" 
+        log_debug "#{self.class}#do_url: #{method} #{data}"
+        if method == :get
+          request.get
+        else 
+          request.send method, data 
+        end
+      rescue RestClient::ExceptionWithResponse => e 
+        log_error e.response
+        raise RGeoServer::InvalidRequest, "#{self.class}#do_url #{sub_url}: #{e.inspect}"
       end 
     end 
 
     # Add resource to the catalog
     # @param [String] what
-    # @param [String] message
+    # @param [String] data
     # @param [Symbol] method
     # @param [Hash] options
-    def add what, message, method, options = {}
+    def add what, data, method, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
       begin 
-        $logger.debug "Adding: \n #{message}"
-        return request.send method, message
-      rescue RestClient::InternalServerError => e
-        log_error e
-        raise GeoServerInvalidRequest, "Error adding #{what.inspect}. See logger for details"
+        log_debug "#{self.class}#add #{what}: #{method} #{data}"
+        request.send method, data
+      rescue RestClient::ExceptionWithResponse => e
+        log_error e.response
+        raise RGeoServer::InvalidRequest, "#{self.class}#add #{what}: #{e.inspect}"
       end
       
     end
 
     # Modify resource in the catalog
     # @param [String] what
-    # @param [String] message
+    # @param [String] data
     # @param [Symbol] method
     # @param [Hash] options
-    def modify what, message, method, options = {}
+    def modify what, data, method, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
       begin
-        $logger.debug "Modifying: \n #{message}"
-        return request.send method, message
-      rescue RestClient::InternalServerError => e
-        log_error e
-        raise GeoServerInvalidRequest, "Error modifying #{what.inspect}. See $logger for details"
+        log_debug "#{self.class}#modify #{what}: #{method} #{data}"
+        request.send method, message
+      rescue RestClient::ExceptionWithResponse => e
+        log_error e.response
+        raise RGeoServer::InvalidRequest, "#{self.class}#modify #{what}: #{e.inspect}"
       end
       
     end
@@ -126,20 +117,40 @@ module RGeoServer
     # Purge resource from the catalog. Options can include recurse=true or false
     # @param [OrderedHash] what
     # @param [Hash] options
-    def purge what, options = {}
+    def purge what, method = :delete, options = {}
       request = client[url_for(what, options)]
       begin
-        $logger.debug "Purge: \n #{request}"
-        return request.delete
-      rescue RestClient::InternalServerError => e 
-        log_error e
-        raise GeoServerInvalidRequest, "Error deleting #{what.inspect}. See $logger for details"
+        log_debug "#{self.class}#delete #{what}: #{method}"
+        request.delete
+      rescue RestClient::ExceptionWithResponse => e 
+        log_error e.response
+        raise RGeoServer::InvalidRequest, "#{self.class}#delete #{what}: #{e.inspect}"
       end
     end
     
     private
-    def log_error e
-      $logger.error e.response
+    # Instantiates a rest client with passed configuration
+    # @param [Hash] config configuration 
+    # return [RestClient::Resource]
+    def rest_client config
+      raise RGeoServer::ArgumentError, "#{self.class}#rest_client requires :url" if config[:url].nil?
+      RestClient::Resource.new(
+        config[:url], 
+        :user => config[:user] || nil, 
+        :password => config[:password] || nil, 
+        :headers => config[:headers] || headers, 
+        :timeout => (config[:timeout] || 300).to_i,
+        :open_timeout => (config[:open_timeout] || 60).to_i
+      )
+    end
+
+    def log_debug s
+      $logger.debug s.to_s
+      $logger.flush if $logger.respond_to? :flush
+    end
+
+    def log_error s
+      $logger.error s.to_s
       $logger.flush if $logger.respond_to? :flush
     end
   end
