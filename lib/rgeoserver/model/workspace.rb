@@ -18,16 +18,6 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    # @return [String] XML document with workspace attributes
-    def message
-      Nokogiri::XML::Builder.new do |xml|
-        xml.workspace { 
-          xml.enabled enabled if enabled_changed?
-          xml.name name 
-        }
-      end.doc.to_xml 
-    end
-
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options `:name`
     def initialize catalog, options
@@ -36,6 +26,14 @@ module RGeoServer
         raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
         @name = options[:name].to_s.strip
       end
+    end
+
+    def route
+      { :workspaces => @name }
+    end
+    
+    def to_s
+      "#{self.class}: #{@name} (new?: #{@new})"
     end
     
     #= Data Stores (Vector datasets)
@@ -65,15 +63,26 @@ module RGeoServer
       end
     end
 
-    # @param [String] workspace
     # @param [String] name
     # @return [RGeoServer::CoverageStore]
     def get_coveragestore name
       CoverageStore.new catalog, :workspace => self, :name => name
     end
+    
+    protected
 
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml 
+    # @return [String] XML document with workspace attributes
+    def message
+      Nokogiri::XML::Builder.new do |xml|
+        xml.workspace { 
+          xml.enabled enabled if enabled_changed?
+          xml.name name 
+        }
+      end.doc.to_xml 
+    end
+
+    def profile_xml_to_hash xml
+      doc = Nokogiri::XML(xml).at_xpath('/workspace')
       h = {
         'name' => doc.at_xpath('//name').text.strip, 
         'enabled' => enabled 

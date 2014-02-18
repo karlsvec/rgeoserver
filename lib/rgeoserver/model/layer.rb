@@ -41,51 +41,10 @@ module RGeoServer
     define_attribute_methods OBJ_ATTRIBUTES.keys
     update_attribute_accessors OBJ_ATTRIBUTES
 
-    # No direct layer creation
-    def create_route
-      raise NotImplemented, 'No direct layer creation'
+    def route
+      { :layers => @name }
     end
-
-    def update_params name_route = @name
-      { :layer => name_route }
-    end
-
-    def message
-      Nokogiri::XML::Builder.new do |xml|
-        xml.layer {
-          xml.name name
-          xml.path path
-          xml.type_ layer_type
-          xml.enabled enabled
-          xml.queryable queryable
-          xml.defaultStyle {
-            xml.name default_style
-          }
-          xml.styles {
-            alternate_styles.each { |s|
-              xml.style {
-                xml.name s
-              }
-            }
-          } unless alternate_styles.empty?
-          xml.resource(:class => resource.class.resource_name){
-            xml.name resource.name
-          } unless resource.nil?
-          xml.metadata {
-            metadata.each_pair { |k,v|
-              xml.entry(:key => k) {
-                xml.text v
-              }
-            }
-          }
-          xml.attribution {
-            xml.title attribution['title'] unless attribution['title'].empty?
-            xml.logoWidth attribution['logo_width']
-            xml.logoHeight attribution['logo_height']
-          } if !attribution['logo_width'].nil? && !attribution['logo_height'].nil?
-        }
-      end.doc.to_xml
-    end
+    
 
     # @param [RGeoServer::Catalog] catalog
     # @param [Hash] options
@@ -148,9 +107,91 @@ module RGeoServer
     def get_style name
       raise NotImplemented
     end
+    
+    def workspace
+      resource.workspace
+    end
 
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml
+    # Return full name of resource with namespace prefix
+    def prefixed_name
+      return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
+      raise RGeoServer::ArgumentError, "Workspace is not defined for this resource"
+    end
+
+    #= GeoWebCache Operations for this layer
+    # See http://geowebcache.org/docs/current/rest/seed.html
+    # See RGeoServer::Catalog.seed_terminate for stopping pending and/or running tasks for any layer
+    #
+    # Example:
+    #  > lyr = RGeoServer::Layer.new catalog, :name => 'Arc_Sample'
+    #  > options = {
+    #    :srs => {:number => 4326 },
+    #    :zoomStart => 1,
+    #    :zoomStop => 12,
+    #    :format => 'image/png',
+    #    :threadCount => 1
+    #  }
+    #  > lyr.seed :issue, options
+    #
+    # @see http://geowebcache.org/docs/current/rest/
+    # @param[String] operation
+    # @option operation[Symbol] :issue seed
+    # @option operation[Symbol] :truncate seed
+    # @option operation[Symbol] :status of the seeding thread
+    # @param[Hash] options for seed message. Read the documentation
+    def seed operation, options
+      op = operation.to_sym
+      sub_path = "seed/#{prefixed_name}"
+      case op
+      when :issue
+        catalog.do_url sub_path, _build_seed_request(:seed, options), :post, {}, catalog.gwc_client
+      when :truncate
+        catalog.do_url sub_path, _build_seed_request(:truncate, options), :post, {}, catalog.gwc_client
+      when :status
+        raise NotImplementedError, "#{op}"
+      end
+    end
+
+    protected
+    def message
+      Nokogiri::XML::Builder.new do |xml|
+        xml.layer {
+          xml.name name
+          xml.path path
+          xml.type_ layer_type
+          xml.enabled enabled
+          xml.queryable queryable
+          xml.defaultStyle {
+            xml.name default_style
+          }
+          xml.styles {
+            alternate_styles.each { |s|
+              xml.style {
+                xml.name s
+              }
+            }
+          } unless alternate_styles.empty?
+          xml.resource(:class => resource.class.resource_name){
+            xml.name resource.name
+          } unless resource.nil?
+          xml.metadata {
+            metadata.each_pair { |k,v|
+              xml.entry(:key => k) {
+                xml.text v
+              }
+            }
+          }
+          xml.attribution {
+            xml.title attribution['title'] unless attribution['title'].empty?
+            xml.logoWidth attribution['logo_width']
+            xml.logoHeight attribution['logo_height']
+          } if !attribution['logo_width'].nil? && !attribution['logo_height'].nil?
+        }
+      end.doc.to_xml
+    end
+
+    def profile_xml_to_hash xml
+      doc = Nokogiri::XML(xml).at_xpath('/layer')
       name = doc.at_xpath('//name').text.strip
       link = doc.at_xpath('//resource//atom:link/@href', "xmlns:atom"=>"http://www.w3.org/2005/Atom").text.strip
       workspace, _, store = link.match(/workspaces\/(.*?)\/(.*?)\/(.*?)\/(.*?)\/#{name}.xml$/).to_a[1,3]
@@ -180,50 +221,6 @@ module RGeoServer
       h
     end
 
-    def workspace
-      resource.workspace
-    end
-
-    # Return full name of resource with namespace prefix
-    def prefixed_name
-      return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
-      raise RGeoServer::ArgumentError, "Workspace is not defined for this resource"
-    end
-
-    #= GeoWebCache Operations for this layer
-    # See http://geowebcache.org/docs/current/rest/seed.html
-    # See RGeoServer::Catalog.seed_terminate for stopping pending and/or running tasks for any layer
-    #
-    # Example:
-    #  > lyr = RGeoServer::Layer.new catalog, :name => 'Arc_Sample'
-    #  > options = {
-    #    :srs => {:number => 4326 },
-    #    :zoomStart => 1,
-    #    :zoomStop => 12,
-    #    :format => 'image/png',
-    #    :threadCount => 1
-    #  }
-    #  > lyr.seed :issue, options
-    #
-    # @see http://geowebcache.org/docs/current/rest/
-
-    # @param[String] operation
-    # @option operation[Symbol] :issue seed
-    # @option operation[Symbol] :truncate seed
-    # @option operation[Symbol] :status of the seeding thread
-    # @param[Hash] options for seed message. Read the documentation
-    def seed operation, options
-      op = operation.to_sym
-      sub_path = "seed/#{prefixed_name}.xml"
-      case op
-      when :issue
-        catalog.do_url sub_path, :post, _build_seed_request(:seed, options), {},  catalog.gwc_client
-      when :truncate
-        catalog.do_url sub_path, :post, _build_seed_request(:truncate, options), {}, catalog.gwc_client
-      when :status
-        raise NotImplementedError, "#{op}"
-      end
-    end
 
     private
     # @param[Hash] options for seed message, requiring

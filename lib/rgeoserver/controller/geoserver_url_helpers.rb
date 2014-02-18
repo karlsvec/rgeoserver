@@ -1,5 +1,6 @@
 
 module RGeoServer
+  # Build URIs for GeoServer REST API
   module GeoServerUrlHelpers
     private
     # Valid URI sequences for REST API

@@ -42,69 +42,33 @@ module RGeoServer
       end
 
       def to_s
-        "#{self.class.name}: #{name} (#{new?}) on #{catalog}"
+        "#{self.class}: #{@name} (#{new?}) on #{@catalog}"
       end
-
-      # def create_method
-      #   :post
-      # end
-      # 
-      # def update_method
-      #   :put
-      # end
-
-      # # We pass the old name "name_route" in case the name of the resource is being edited
-      # # Child classes should implement this
-      # def update_params name_route = name
-      #   { self.class.resource_name.downcase.to_sym => name_route }
-      # end
 
       # Modify or save the resource
       # @param [Hash] options / query parameters
       # @return [RGeoServer::ResourceInfo]
       def save options = {}
-        raise NotImplementedError
-        # @previously_changed = changes
-        # @changed_attributes.clear
-        # run_callbacks :save do
-        #   unless @previously_changed[:name].nil?
-        #     old_name, new_name = @previously_changed[:name]
-        #     name_route = old_name if old_name != new_name
-        #     update = true
-        #   else
-        #     name_route = name
-        #     update = false
-        #   end
-        #   if new? and not update # need to create
-        #     # if self.respond_to?(:create_route)
-        #     #   raise "Resource cannot be created directly" if create_route.nil?
-        #     #   route = create_route
-        #     # else
-        #     #   route = {@route => nil}
-        #     # end
-        #     options = create_options.merge(options) if self.respond_to?(:create_options)
-        #     catalog.add(route, message, create_method, options)
-        #     clear
-        #   else # exists
-        #     options = update_params(name_route).merge(options)
-        #     # route = {@route => name_route}
-        #     catalog.modify(route, message, update_method, options) #unless changes.empty?
-        #   end
-        # 
-        #   self
-        # end
+        @previously_changed = changes
+        @changed_attributes.clear
+        run_callbacks :save do
+          if new? # need to create
+            @catalog.add(route, message, options)
+          else # exists
+            @catalog.modify(route, message, options)
+          end
+          refresh
+        end
       end
 
       # Purge resource from Geoserver Catalog
       # @param [Hash] options
       # @return [RGeoServer::ResourceInfo] `self`
       def delete options = {}
-        raise NotImplementedError
-        # run_callbacks :destroy do
-        #   catalog.purge({@route => @name}, options) unless new?
-        #   clear
-        #   self
-        # end
+        run_callbacks :destroy do
+          @catalog.purge(route, options) unless new?
+          refresh
+        end
       end
 
       # Check if this resource already exists
@@ -128,37 +92,49 @@ module RGeoServer
       # Retrieve the resource profile as a hash and cache it
       # @return [Hash]
       def profile
-        raise NotImplementedError
-        # unless @profile
-        #   begin
-        #     self.profile = catalog.search self.class.to_s.downcase => @name
-        #     @new = false
-        #   rescue RestClient::ResourceNotFound # The resource is new
-        #     @profile = {}
-        #     @new = true
-        #   end
-        #   @profile.freeze unless @profile.frozen?
-        # end
-        # @profile
+        unless @profile
+          begin
+            self.profile = catalog.search route
+            @new = false
+          rescue RestClient::ResourceNotFound # The resource is new
+            @profile = {}
+            @new = true
+          end
+          @profile.freeze unless @profile.frozen?
+        end
+        @profile
       end
 
-      def profile= profile_xml
-        raise NotImplementedError
-        # @profile = profile_xml_to_hash(profile_xml)
-        # @profile.freeze
+      def profile= data, type = :xml
+        case type
+        when :xml
+          @profile = profile_xml_to_hash(data)
+        when :json
+          @profile = profile_json_to_hash(data)
+        else
+          raise NotImplementedError, "profile= does not support #{type}"
+        end
+        @profile.freeze
       end
 
-      def profile_xml_to_ng profile_xml
-        raise NotImplementedError
-        # Nokogiri::XML(profile_xml).xpath(self.class.member_xpath)
+      def profile_xml_to_ng xml
+        raise NotImplementedError, 'profile_xml_to_ng is abstract method'
       end
 
-      def profile_xml_to_hash profile_xml
+      def profile_xml_to_hash xml
         raise NotImplementedError, 'profile_xml_to_hash is abstract method'
+      end
+
+      def profile_json_to_hash json
+        raise NotImplementedError, 'profile_json_to_hash is abstract method'
       end
 
       def message
         raise NotImplementedError, 'message is abstract method'
+      end
+      
+      def route
+        raise NotImplementedError, 'route is abstract method'
       end
     end
 end

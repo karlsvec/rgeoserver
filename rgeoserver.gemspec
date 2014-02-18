@@ -12,22 +12,21 @@ Gem::Specification.new do |s|
   s.homepage = 'http://github.com/sul-dlss/rgeoserver'
   s.has_rdoc = true
   s.licenses = ['ALv2', 'Stanford University Libraries']
-  
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- spec/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ['lib']
 
-  s.add_dependency 'activemodel', '~> 4.0'
-  s.add_dependency 'activeresource', '~> 4.0'
-  s.add_dependency 'activesupport', '~> 4.0'
-  s.add_dependency 'confstruct', '~> 0.2.0'
-  s.add_dependency 'mime-types', '~> 2.0'
-  s.add_dependency 'nokogiri', '~> 1.6.0'
-  s.add_dependency 'rest-client', '~> 1.6.0'
-  s.add_dependency 'rgeo', '~> 0.3.0'
-  s.add_dependency 'rgeo-shapefile', '~> 0.2.0'
+  s.add_dependency 'activemodel', '~> 4.0.2'
+  s.add_dependency 'activeresource', '~> 4.0.0'
+  s.add_dependency 'activesupport', '~> 4.0.2'
+  s.add_dependency 'confstruct', '~> 0.2.5'
+  s.add_dependency 'mime-types', '~> 2.1'
+  s.add_dependency 'nokogiri', '~> 1.6.1'
+  s.add_dependency 'rest-client', '~> 1.6.7'
+  s.add_dependency 'rgeo', '~> 0.3.20'
+  s.add_dependency 'rgeo-shapefile', '~> 0.2.3'
   s.add_dependency 'rubyzip', '~> 1.1.0'
 
   s.add_development_dependency 'awesome_print'

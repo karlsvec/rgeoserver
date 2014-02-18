@@ -25,6 +25,10 @@ module RGeoServer
 
     attr_accessor :message
 
+    def route
+      { :workspaces => @workspace.name, :datastores => @name }
+    end
+
     # @param [RGeoServer::Catalog] catalog
     # @param [RGeoServer::Workspace|String] options `:workspace`, `:name`
     def initialize catalog, options
@@ -33,7 +37,7 @@ module RGeoServer
         raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
         ws = options[:workspace]
         if ws.instance_of? String
-          @workspace = catalog.get_workspace(ws)
+          @workspace = @catalog.get_workspace(ws)
         elsif ws.instance_of? Workspace
           @workspace = ws
         else
@@ -45,6 +49,21 @@ module RGeoServer
       end
     end
 
+    # @yield [RGeoServer::FeatureType]
+    def featuretypes
+      doc = Nokogiri::XML(catalog.search :workspaces => workspace.name, :datastores => name, :featuretypes => nil)
+      doc.xpath('/featureTypes/featureType/name').each do |n| 
+        yield get_featuretype(n.text.strip)
+      end
+    end
+
+    # @param [String] name
+    # @return [RGeoServer::FeatureType]
+    def get_featuretype name
+      FeatureType.new catalog, :workspace => workspace, :datastore => self, :name => name
+    end
+
+    protected
     def message
       Nokogiri::XML::Builder.new do |xml|
         xml.dataStore {
@@ -63,22 +82,8 @@ module RGeoServer
       end.doc.to_xml
     end
 
-    # @yield [RGeoServer::FeatureType]
-    def featuretypes
-      doc = Nokogiri::XML(catalog.search :workspaces => workspace.name, :datastores => name, :featuretypes => nil)
-      doc.xpath('/featureTypes/featureType/name').each do |n| 
-        yield get_featuretype(n.text.strip)
-      end
-    end
-
-    # @param [String] name
-    # @return [RGeoServer::FeatureType]
-    def get_featuretype name
-      FeatureType.new catalog, :workspace => workspace, :datastore => self, :name => name
-    end
-
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml
+    def profile_xml_to_hash xml
+      doc = Nokogiri::XML(xml).at_xpath('/datastore')
       h = {
         "name" => doc.at_xpath('//name').text.strip,
         "description" => doc.at_xpath('//description').text,

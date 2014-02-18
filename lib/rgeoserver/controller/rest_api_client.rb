@@ -4,8 +4,8 @@ require 'logger'
 $logger = Logger.new(STDERR) # XXX: Use config[:restclient][:logfile]
 $logger.level = Logger::INFO
 
-#
 module RGeoServer
+  # Uses 'restclient' to build CRUD API
   module RestApiClient
 
     include RGeoServer::GeoServerUrlHelpers
@@ -33,13 +33,6 @@ module RGeoServer
       @gwc_client
     end
 
-    def headers
-      { 
-        :accept => 'text/xml',
-        :content_type => 'text/xml'
-      }
-    end
-
     # Search a resource in the catalog
     # @param [OrderedHash] what
     # @param [Hash] options
@@ -47,7 +40,7 @@ module RGeoServer
       request = client[url_for(what, options)]
       request.options[:headers] = headers
       begin
-        log_debug "#{self.class}#search: #{what}"
+        log_debug "#{self.class}#search: GET #{what}"
         request.get
       rescue RestClient::ExceptionWithResponse => e
         log_error e.response
@@ -56,20 +49,21 @@ module RGeoServer
     end
 
     # Do an action on an arbitrary URL path within the catalog 
-    # Default method is GET 
     # @param [String] sub_url 
-    # @param [String] method 
     # @param [String] data payload 
+    # @param [String] method 
     # @param [Hash] options for request 
-    def do_url sub_url, method = :get, data = nil, options = {}, client = client
-      sub_url.slice! client.url
+    # @param [RestClient::Resource] client 
+    def do_url sub_url, data = nil, method = :get, options = {}, client = client
+      sub_url.slice! client.url # if full path equivalence
       request = client[sub_url] 
       request.options.merge(options)
       begin
-        log_debug "#{self.class}#do_url: #{method} #{data}"
         if method == :get
+          log_debug "#{self.class}#do_url: GET #{sub_url}"
           request.get
         else 
+          log_debug "#{self.class}#do_url: #{method} #{sub_url}: #{data}"
           request.send method, data 
         end
       rescue RestClient::ExceptionWithResponse => e 
@@ -81,14 +75,13 @@ module RGeoServer
     # Add resource to the catalog
     # @param [String] what
     # @param [String] data
-    # @param [Symbol] method
     # @param [Hash] options
-    def add what, data, method, options = {}
+    def add what, data, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
       begin 
-        log_debug "#{self.class}#add #{what}: #{method} #{data}"
-        request.send method, data
+        log_debug "#{self.class}#add: POST #{what}: #{data}"
+        request.post data
       rescue RestClient::ExceptionWithResponse => e
         log_error e.response
         raise RGeoServer::InvalidRequest, "#{self.class}#add #{what}: #{e.inspect}"
@@ -99,14 +92,13 @@ module RGeoServer
     # Modify resource in the catalog
     # @param [String] what
     # @param [String] data
-    # @param [Symbol] method
     # @param [Hash] options
-    def modify what, data, method, options = {}
+    def modify what, data, options = {}
       request = client[url_for(what, options)]
       request.options[:headers] = headers
       begin
-        log_debug "#{self.class}#modify #{what}: #{method} #{data}"
-        request.send method, message
+        log_debug "#{self.class}#modify PUT #{what}: #{data}"
+        request.put data
       rescue RestClient::ExceptionWithResponse => e
         log_error e.response
         raise RGeoServer::InvalidRequest, "#{self.class}#modify #{what}: #{e.inspect}"
@@ -117,15 +109,22 @@ module RGeoServer
     # Purge resource from the catalog. Options can include recurse=true or false
     # @param [OrderedHash] what
     # @param [Hash] options
-    def purge what, method = :delete, options = {}
+    def purge what, options = {}
       request = client[url_for(what, options)]
       begin
-        log_debug "#{self.class}#delete #{what}: #{method}"
+        log_debug "#{self.class}#delete: DELETE #{what}"
         request.delete
       rescue RestClient::ExceptionWithResponse => e 
         log_error e.response
         raise RGeoServer::InvalidRequest, "#{self.class}#delete #{what}: #{e.inspect}"
       end
+    end
+    
+    def headers
+      { 
+        :accept => 'text/xml',
+        :content_type => 'text/xml'
+      }
     end
     
     private

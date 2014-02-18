@@ -53,7 +53,103 @@ module RGeoServer
       :reproject => 'REPROJECT_TO_DECLARED',
       :keep => 'NONE'
     }
+    
+    def route
+      { :workspaces => @workspace.name, :datastores => @data_store.name, :featuretypes => @name }
+    end
 
+    # @param [RGeoServer::Catalog] catalog
+    # @param [Hash] options
+    def initialize catalog, options
+      super(catalog)
+      run_callbacks :initialize do
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
+        ws = options[:workspace]
+        if ws.instance_of? String
+          @workspace = @catalog.get_workspace(ws)
+        elsif ws.instance_of? Workspace
+          @workspace = ws
+        else
+          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
+        end
+      
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :datastore option" unless options.include?(:datastore)
+        ds = options[:datastore]
+        if ds.instance_of? String
+          @data_store = @workspace.get_datastore(ds)
+        elsif ds.instance_of? DataStore
+          @data_store = ds
+        else
+          raise RGeoServer::ArgumentError, "Not a valid datastore: #{ds}"
+        end
+
+        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
+        @name = options[:name].to_s.strip
+      end
+    end
+
+    protected
+
+    def profile_xml_to_hash profile_xml
+      doc = profile_xml_to_ng profile_xml
+      ft = doc.at_xpath('//featureType')
+      {
+        "name" => ft.at_xpath('name').text.strip,
+        "native_name" => ft.at_xpath('nativeName').text.strip,
+        "title" => ft.at_xpath('title').text,
+        "abstract" => ft.at_xpath('abstract/text()'), # optional
+        "keywords" => ft.xpath('keywords/string').collect { |k| k.at_xpath('.').text},
+        "workspace" => workspace.name,
+        "data_store" => datastore.name,
+        "srs" => ft.at_xpath('srs').text,
+        "native_bounds" => {
+          'minx' => ft.at_xpath('nativeBoundingBox/minx').text.to_f,
+          'miny' => ft.at_xpath('nativeBoundingBox/miny').text.to_f,
+          'maxx' => ft.at_xpath('nativeBoundingBox/maxx').text.to_f,
+          'maxy' => ft.at_xpath('nativeBoundingBox/maxy').text.to_f,
+          'crs' => ft.at_xpath('srs').text
+        },
+        "latlon_bounds" => {
+          'minx' => ft.at_xpath('latLonBoundingBox/minx').text.to_f,
+          'miny' => ft.at_xpath('latLonBoundingBox/miny').text.to_f,
+          'maxx' => ft.at_xpath('latLonBoundingBox/maxx').text.to_f,
+          'maxy' => ft.at_xpath('latLonBoundingBox/maxy').text.to_f,
+          'crs' => ft.at_xpath('latLonBoundingBox/crs').text
+        },
+        "projection_policy" => get_projection_policy_sym(ft.at_xpath('projectionPolicy').text),
+        "metadata_links" => ft.xpath('metadataLinks/metadataLink').collect{ |m|
+          {
+            'type' => m.at_xpath('type').text,
+            'metadataType' => m.at_xpath('metadataType').text,
+            'content' => m.at_xpath('content').text
+          }
+        },
+        "attributes" => ft.xpath('attributes/attribute').collect{ |a|
+          {
+            'name' => a.at_xpath('name').text,
+            'minOccurs' => a.at_xpath('minOccurs').text,
+            'maxOccurs' => a.at_xpath('maxOccurs').text,
+            'nillable' => a.at_xpath('nillable').text,
+            'binding' => a.at_xpath('binding').text
+          }
+        }
+      }.freeze
+    end
+
+    def valid_native_bounds?
+      bbox = RGeoServer::BoundingBox.new(native_bounds)
+      not bbox.nil? and bbox.valid? and not native_bounds['crs'].empty?
+    end
+
+    def valid_latlon_bounds?
+      bbox = RGeoServer::BoundingBox.new(latlon_bounds)
+      not bbox.nil? and bbox.valid? and not latlon_bounds['crs'].empty?
+    end
+    
+    def update_params name_route = name
+      super(name_route)
+      # recalculate='nativebbox,latlonbbox'
+    end
     def to_mimetype(type, default = 'text/xml')
       k = type.to_s.strip.upcase
       return METADATA_TYPES[k] if METADATA_TYPES.include? k
@@ -124,97 +220,6 @@ module RGeoServer
       @message
     end
 
-
-    # @param [RGeoServer::Catalog] catalog
-    # @param [Hash] options
-    def initialize catalog, options
-      super(catalog)
-      run_callbacks :initialize do
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :workspace option" unless options.include?(:workspace)
-        ws = options[:workspace]
-        if ws.instance_of? String
-          @workspace = catalog.get_workspace(ws)
-        elsif ws.instance_of? Workspace
-          @workspace = ws
-        else
-          raise RGeoServer::ArgumentError, "Not a valid workspace: #{ws}"
-        end
-      
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :datastore option" unless options.include?(:datastore)
-        ds = options[:datastore]
-        if ds.instance_of? String
-          @data_store = workspace.get_datastore(ds)
-        elsif ds.instance_of? DataStore
-          @data_store = ds
-        else
-          raise RGeoServer::ArgumentError, "Not a valid datastore: #{ds}"
-        end
-
-        raise RGeoServer::ArgumentError, "#{self.class}.new requires :name option" unless options.include?(:name)
-        @name = options[:name].to_s.strip
-      end
-    end
-
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml
-      ft = doc.at_xpath('//featureType')
-      {
-        "name" => ft.at_xpath('name').text.strip,
-        "native_name" => ft.at_xpath('nativeName').text.strip,
-        "title" => ft.at_xpath('title').text,
-        "abstract" => ft.at_xpath('abstract/text()'), # optional
-        "keywords" => ft.xpath('keywords/string').collect { |k| k.at_xpath('.').text},
-        "workspace" => workspace.name,
-        "data_store" => datastore.name,
-        "srs" => ft.at_xpath('srs').text,
-        "native_bounds" => {
-          'minx' => ft.at_xpath('nativeBoundingBox/minx').text.to_f,
-          'miny' => ft.at_xpath('nativeBoundingBox/miny').text.to_f,
-          'maxx' => ft.at_xpath('nativeBoundingBox/maxx').text.to_f,
-          'maxy' => ft.at_xpath('nativeBoundingBox/maxy').text.to_f,
-          'crs' => ft.at_xpath('srs').text
-        },
-        "latlon_bounds" => {
-          'minx' => ft.at_xpath('latLonBoundingBox/minx').text.to_f,
-          'miny' => ft.at_xpath('latLonBoundingBox/miny').text.to_f,
-          'maxx' => ft.at_xpath('latLonBoundingBox/maxx').text.to_f,
-          'maxy' => ft.at_xpath('latLonBoundingBox/maxy').text.to_f,
-          'crs' => ft.at_xpath('latLonBoundingBox/crs').text
-        },
-        "projection_policy" => get_projection_policy_sym(ft.at_xpath('projectionPolicy').text),
-        "metadata_links" => ft.xpath('metadataLinks/metadataLink').collect{ |m|
-          {
-            'type' => m.at_xpath('type').text,
-            'metadataType' => m.at_xpath('metadataType').text,
-            'content' => m.at_xpath('content').text
-          }
-        },
-        "attributes" => ft.xpath('attributes/attribute').collect{ |a|
-          {
-            'name' => a.at_xpath('name').text,
-            'minOccurs' => a.at_xpath('minOccurs').text,
-            'maxOccurs' => a.at_xpath('maxOccurs').text,
-            'nillable' => a.at_xpath('nillable').text,
-            'binding' => a.at_xpath('binding').text
-          }
-        }
-      }.freeze
-    end
-
-    def valid_native_bounds?
-      bbox = RGeoServer::BoundingBox.new(native_bounds)
-      not bbox.nil? and bbox.valid? and not native_bounds['crs'].empty?
-    end
-
-    def valid_latlon_bounds?
-      bbox = RGeoServer::BoundingBox.new(latlon_bounds)
-      not bbox.nil? and bbox.valid? and not latlon_bounds['crs'].empty?
-    end
-    
-    def update_params name_route = name
-      super(name_route)
-      # recalculate='nativebbox,latlonbbox'
-    end
 
     private
     
