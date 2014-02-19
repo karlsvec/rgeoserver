@@ -4,7 +4,7 @@ module RGeoServer
   class Workspace < ResourceInfo
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = %w{enabled name}
+    OBJ_ATTRIBUTES = %w{name enabled}
     OBJ_DEFAULT_ATTRIBUTES = {
       :enabled => 'true'
     }
@@ -30,14 +30,14 @@ module RGeoServer
     
     # @return [String]
     def to_s
-      "#{self.class}: #{@name} (new?: #{new?})"
+      "#{self.class}: #{@name} (new? #{new?})"
     end
     
     #= Data Stores (Vector datasets)
 
     # @yield [RGeoServer::DataStore]
     def datastores
-      data = ActiveSupport::JSON.decode(catalog.search :workspaces => @name, :datastores => nil)
+      data = ActiveSupport::JSON.decode(catalog.search :workspaces => name, :datastores => nil)
       data['dataStores']['dataStore'].each do |h|
         yield get_datastore(h['name'].to_s.strip)
       end
@@ -55,7 +55,7 @@ module RGeoServer
     # @param [String] workspace
     # @yield [RGeoServer::CoverageStore]
     def coveragestores 
-      data = ActiveSupport::JSON.decode(catalog.search :workspaces => @name, :coveragestores => nil)
+      data = ActiveSupport::JSON.decode(catalog.search :workspaces => name, :coveragestores => nil)
       data['coverageStores']['coverageStore'].each do |h|
         yield get_coveragestore(h['name'].to_s.strip)
       end
@@ -68,17 +68,15 @@ module RGeoServer
       CoverageStore.new catalog, :workspace => self, :name => name
     end
     
-    protected
+    # protected
 
     # @return [String] JSON document with workspace attributes
     def message
-      { 
-        :workspace => 
-          {
-            :name => name,
-            :enabled => enabled
-          }
-      }.to_json
+      h = { :workspace => { } }
+      OBJ_ATTRIBUTES.each do |k|
+        h[:workspace][k.to_sym] = self.send k
+      end
+      h.to_json
     end
 
     def profile_json_to_hash json

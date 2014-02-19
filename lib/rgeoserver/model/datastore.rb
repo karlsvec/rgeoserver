@@ -6,9 +6,14 @@ module RGeoServer
 
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = %w{name enabled type descrption connection_parameters}
+    OBJ_ATTRIBUTES = %w{
+      name 
+      connectionParameters
+      description 
+      enabled 
+      type 
+    }
     OBJ_DEFAULT_ATTRIBUTES = {
-      :connection_parameters => {}, 
       :type => :shapefile,
       :enabled => true
     }  
@@ -19,6 +24,11 @@ module RGeoServer
     # @return [Hash]
     def route
       { :workspaces => workspace.name, :datastores => name }
+    end
+    
+    # @return [String]
+    def to_s
+      "#{self.class}: #{workspace.name}:#{@name} (new? #{new?})"
     end
 
     # @param [RGeoServer::Catalog] catalog
@@ -62,17 +72,12 @@ module RGeoServer
       FeatureType.new catalog, :workspace => workspace, :datastore => self, :name => name
     end
 
-    protected
     def message
-      {
-        :dataStore => {
-          :name => name, 
-          :enabled => enabled, 
-          :type => type,
-          :description => description,
-          :connection_parameters => connection_parameters          
-        }
-      }.to_json
+      h = { :dataStore => { } }
+      OBJ_ATTRIBUTES.each do |k|
+        h[:dataStore][k.to_sym] = self.send k
+      end
+      h.to_json
     end
     
     def profile_json_to_hash json

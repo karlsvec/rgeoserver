@@ -26,9 +26,9 @@ module RGeoServer
       @changed_attributes.clear
       run_callbacks :save do
         if new? # need to create
-          @catalog.add(route, message, options)
+          catalog.add(route, message, options)
         else # exists
-          @catalog.modify(route, message, options)
+          catalog.modify(route, message, options)
         end
         refresh
       end
@@ -39,7 +39,7 @@ module RGeoServer
     # @return [RGeoServer::ResourceInfo]
     def delete options = {}
       run_callbacks :destroy do
-        @catalog.purge(route, options) unless new?
+        catalog.purge(route, options) unless new?
         refresh
       end
     end
@@ -91,7 +91,7 @@ module RGeoServer
     def profile
       unless @profile
         begin
-          self.profile = @catalog.search route
+          self.profile = catalog.search route
           @new = false
         rescue RestClient::ResourceNotFound # The resource is new
           @profile = {}
