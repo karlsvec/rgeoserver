@@ -5,21 +5,18 @@ module RGeoServer
     attr_reader :workspace
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = {
-      :url => 'url', 
-      :data_type => 'type', 
-      :name => 'name', 
-      :enabled => 'enabled', 
-      :description => 'description'
-    }  
+    OBJ_ATTRIBUTES = %w{
+      name 
+      connectionParameters
+      enabled 
+      type
+      url 
+    }
     OBJ_DEFAULT_ATTRIBUTES = {
-      :url => '', 
-      :data_type => 'GeoTIFF', 
-      :name => nil, 
-      :enabled => 'true', 
-      :description=>nil
+      :type => :GeoTIFF,
+      :enabled => true
     }  
-    define_attribute_methods OBJ_ATTRIBUTES.keys
+    define_attribute_methods OBJ_ATTRIBUTES
     update_attribute_accessors OBJ_ATTRIBUTES
     
     # @param [RGeoServer::Catalog] catalog
@@ -47,73 +44,41 @@ module RGeoServer
 
     # @yield [RGeoServer::Coverage]
     def coverages
-      doc = Nokogiri::XML(@catalog.search :workspaces => @workspace, :coveragestores => @name, :coverages => nil)
-      doc.xpath('/coverages/coverage/name/text()').each do |n| 
-        yield get_coverage(n.to_s.strip)
+      data = ActiveSupport::JSON.decode(catalog.search :workspaces => workspace.name, 
+                                                       :coveragestores => name, 
+                                                       :coverages => nil)
+      data['coverages']['coverage'].each do |h| 
+        yield get_coverage(h['name'].to_s.strip)
       end
+      nil
     end
-    
+
     # @param [String] name
     # @return [RGeoServer::Coverage]
     def get_coverage name
-      Coverage.new catalog, :workspace => workspace, :coverage_store => self, :name => name
+      Coverage.new catalog, :workspace => workspace, :coveragestore => self, :name => name
     end
 
-    protected
+    # @return [Hash]
+    def route
+      { :workspaces => workspace.name, :coveragestores => name }
+    end
+    
+    # @return [String]
+    def to_s
+      "#{self.class}: #{workspace.name}:#{@name} (new? #{new?})"
+    end
+
     def message
-      Nokogiri::XML::Builder.new do |xml|
-        xml.coverageStore {
-          xml.name name  
-          xml.workspace {
-            xml.name workspace.name
-          }
-          xml.enabled enabled if enabled_changed? or new?
-          xml.type_ data_type if data_type_changed? or new?
-          xml.description description if description_changed? or new?
-          xml.url url if url_changed? or new?
-        }
-      end.doc.to_xml 
+      h = { :coverageStore => { } }
+      OBJ_ATTRIBUTES.each do |k|
+        h[:coverageStore][k.to_sym] = self.send k
+      end
+      h.to_json
     end
-
-    # <coverageStore>
-    # <name>antietam_1867</name>
-    # <description>
-    # Map shows the U.S. Civil War battle of Antietam. It indicates fortifications, roads, railroads, houses, names of residents, fences, drainage, vegetation, and relief by hachures.
-    # </description>
-    # <type>GeoTIFF</type>
-    # <enabled>true</enabled>
-    # <workspace>
-    # <name>druid</name>
-    # <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="http://localhost:8080/geoserver/rest/workspaces/druid.xml" type="application/xml"/>
-    # </workspace>
-    # <__default>false</__default>
-    # <url>
-    # file:///var/geoserver/current/staging/rumsey/g3881015alpha.tif
-    # </url>
-    # <coverages>
-    # <atom:link xmlns:atom="http://www.w3.org/2005/Atom" rel="alternate" href="http://localhost:8080/geoserver/rest/workspaces/druid/coveragestores/antietam_1867/coverages.xml" type="application/xml"/>
-    # </coverages>
-    # </coverageStore>
-    def profile_xml_to_hash xml
-      doc = Nokogiri::XML(xml).at_xpath('/coverageStore')
-      h = {
-        'name' => doc.at_xpath('name').text.strip, 
-        'description' => doc.at_xpath('description').text,
-        'type' => doc.at_xpath('type').text,
-        'enabled' => doc.at_xpath('enabled').text,
-        'url' => doc.at_xpath('url').text,
-        'workspace' => @workspace.name # Assume correct workspace
-      }
-      doc.xpath('coverages/atom:link[@rel="alternate"]/@href', 
-                "xmlns:atom"=>"http://www.w3.org/2005/Atom" ).each{ |l| 
-        h['coverages'] = begin
-          response = catalog.do_url l.text
-          Nokogiri::XML(response).xpath('name/text()').collect{ |a| a.text.strip }
-        rescue RestClient::ResourceNotFound
-          []
-        end.freeze
-      }
-      h
+    
+    def profile_json_to_hash json
+      ActiveSupport::JSON.decode(json)['coverageStore']
     end
 
   end

@@ -3,26 +3,31 @@ module RGeoServer
   # A coverage is a raster based data set which originates from a coverage store.
   class Coverage < ResourceInfo
     attr_reader :workspace, :coveragestore
+
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = {
-      :enabled => "enabled",
-      :name => "name", 
-      :title => "title", 
-      :abstract => "abstract", 
-      :keywords => "keywords", 
-      :metadata => "metadata", 
-      :metadata_links => "metadataLinks" 
-    }
-    OBJ_DEFAULT_ATTRIBUTES = {
-      :enabled => "true",
-      :name => nil, 
-      :title => nil, 
-      :abstract => nil,  
-      :keywords => [],  
-      :metadata => {},  
-      :metadata_links => [] 
-    } 
+    # uses 'description' rather than 'abstract'
+    OBJ_ATTRIBUTES = %w{
+      name 
+      defaultInterpolationMethod
+      description 
+      dimensions
+      enabled 
+      grid
+      interpolationMethods
+      keywords 
+      latLonBoundingBox 
+      metadata 
+      namespace 
+      nativeBoundingBox 
+      nativeCRS 
+      nativeFormat
+      nativeName 
+      srs 
+      supportedFormats
+      title
+      }
+    OBJ_DEFAULT_ATTRIBUTES = { }
    
     # @see http://inspire.ec.europa.eu/schemas/common/1.0/common.xsd
     METADATA_TYPES = {
@@ -30,7 +35,7 @@ module RGeoServer
       'TC211' => 'application/vnd.iso.19139+xml'
     }
    
-    define_attribute_methods OBJ_ATTRIBUTES.keys
+    define_attribute_methods OBJ_ATTRIBUTES
     update_attribute_accessors OBJ_ATTRIBUTES
 
     # @param [RGeoServer::Catalog] catalog
@@ -55,9 +60,9 @@ module RGeoServer
         raise RGeoServer::ArgumentError, "#{self.class}.new requires :coveragestore option" unless options.include?(:coveragestore)
         cs = options[:coveragestore]
         if cs.instance_of? String
-          @coverage_store = workspace.get_coveragestore(cs)
+          @coveragestore = workspace.get_coveragestore(cs)
         elsif cs.instance_of? RGeoServer::CoverageStore
-          @coverage_store = cs
+          @coveragestore = cs
         else
           raise RGeoServer::ArgumentError, "Not a valid coveragestore: #{cs}"
         end
@@ -67,82 +72,27 @@ module RGeoServer
       end
     end
 
-    protected
+
+    # @return [Hash]
+    def route
+      { :workspaces => workspace.name, :coveragestores => coveragestore.name, :coverages => name }
+    end
+    
+    # @return [String]
+    def to_s
+      "#{self.class}: #{workspace.name}:#{coveragestore.name}:#{@name} (new? #{new?})"
+    end
+
     def message
-      builder = Nokogiri::XML::Builder.new do |xml|
-        xml.coverage {
-          xml.name name
-          xml.title title 
-          xml.enabled enabled if enabled_changed? or new?
-          if new?
-            xml.nativeName name
-            xml.abstract abstract if abstract_changed?
-            xml.metadataLinks {
-              metadata_links.each do |m|
-                xml.metadataLink {
-                  xml.type_ to_mimetype(m['metadataType'])
-                  xml.metadataType m['metadataType']
-                  xml.content m['content']
-                }
-              end
-            } if metadata_links
-          end
-          xml.keywords {
-            keywords.each do |k|
-              xml.keyword RGeoServer::Metadata::to_keyword(k)
-            end
-          } if keywords and new? or keywords_changed?
-          
-        }
+      h = { :coverage => { } }
+      OBJ_ATTRIBUTES.each do |k|
+        h[:coverage][k.to_sym] = self.send k
       end
-      message = builder.doc.to_xml 
+      h.to_json
     end
-
-    # @return [Hash] extraction from GeoServer XML for this coverage
-    def profile_xml_to_hash profile_xml
-      doc = profile_xml_to_ng profile_xml
-      {
-        "coverage_store" => coverage_store.name,
-        "workspace" => workspace.name,
-        "name" => doc.at_xpath('//name').text.strip,
-        "nativeName" => doc.at_xpath('//nativeName').text,
-        "nativeCRS" => doc.at_xpath('//nativeCRS').text,
-        "title" => doc.at_xpath('//title').text,
-        "srs" => doc.at_xpath('//srs').text,
-        "nativeBoundingBox" => { 
-          'minx' => doc.at_xpath('//nativeBoundingBox/minx').text.to_f,
-          'miny' => doc.at_xpath('//nativeBoundingBox/miny').text.to_f,
-          'maxx' => doc.at_xpath('//nativeBoundingBox/maxx').text.to_f,
-          'maxy' => doc.at_xpath('//nativeBoundingBox/maxy').text.to_f,
-          'crs' => doc.at_xpath('//nativeBoundingBox/crs').text
-        },
-        "latLonBoundingBox" => { 
-          'minx' => doc.at_xpath('//latLonBoundingBox/minx').text.to_f,
-          'miny' => doc.at_xpath('//latLonBoundingBox/miny').text.to_f,
-          'maxx' => doc.at_xpath('//latLonBoundingBox/maxx').text.to_f,
-          'maxy' => doc.at_xpath('//latLonBoundingBox/maxy').text.to_f,
-          'crs' => doc.at_xpath('//latLonBoundingBox/crs').text
-        },
-        "abstract" => doc.at_xpath('//abstract').text, 
-        "supportedFormats" => doc.xpath('//supportedFormats/string').collect{ |t| t.to_s },
-        "keywords" => doc.at_xpath('//keywords').collect { |kl|
-          {
-            'keyword' => kl.at_xpath('//string').text
-          }
-        },
-        "metadataLinks" => doc.xpath('//metadataLinks/metadataLink').collect{ |m|
-          {
-            'type' => m.at_xpath('//type').text,
-            'metadataType' => m.at_xpath('//metadataType').text,
-            'content' => m.at_xpath('//content').text
-          }
-        },
-      }.freeze
-    end
-
-    def to_mimetype(type, default = 'text/xml')
-      return METADATA_TYPES[type.upcase] if METADATA_TYPES.include?(type.upcase) 
-      default
+    
+    def profile_json_to_hash json
+      ActiveSupport::JSON.decode(json)['coverage']
     end
 
   end
