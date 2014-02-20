@@ -6,7 +6,7 @@ module RGeoServer
 
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    # uses 'description' rather than 'abstract'
+    # uses 'description' rather than 'abstract' in the GeoServer Web admin UI
     OBJ_ATTRIBUTES = %w{
       name 
       defaultInterpolationMethod
@@ -22,7 +22,9 @@ module RGeoServer
       nativeBoundingBox 
       nativeCRS 
       nativeFormat
-      nativeName 
+      nativeName
+      requestSRS
+      responseSRS
       srs 
       supportedFormats
       title
