@@ -37,7 +37,7 @@ module RGeoServer
 
     # @yield [RGeoServer::DataStore]
     def datastores
-      data = ActiveSupport::JSON.decode(catalog.search :workspaces => name, :datastores => nil)
+      data = JSON.decode(catalog.search :workspaces => name, :datastores => nil)
       data['dataStores']['dataStore'].each do |h|
         yield get_datastore(h['name'].to_s.strip)
       end
@@ -55,7 +55,7 @@ module RGeoServer
     # @param [String] workspace
     # @yield [RGeoServer::CoverageStore]
     def coveragestores 
-      data = ActiveSupport::JSON.decode(catalog.search :workspaces => name, :coveragestores => nil)
+      data = JSON.decode(catalog.search :workspaces => name, :coveragestores => nil)
       data['coverageStores']['coverageStore'].each do |h|
         yield get_coveragestore(h['name'].to_s.strip)
       end
@@ -74,13 +74,13 @@ module RGeoServer
     def message
       h = { :workspace => { } }
       OBJ_ATTRIBUTES.each do |k|
-        h[:workspace][k.to_sym] = self.send k
+        h[:workspace][k.to_sym] = self.send k.to_sym
       end
       h.to_json
     end
 
     def profile_json_to_hash json
-      ActiveSupport::JSON.decode(json)['workspace']
+      JSON.decode(json)['workspace']
     end
   end
 end 

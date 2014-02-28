@@ -75,7 +75,7 @@ module RGeoServer
     def message
       h = { :dataStore => { } }
       OBJ_ATTRIBUTES.each do |k|
-        h[:dataStore][k.to_sym] = self.send k
+        h[:dataStore][k.to_sym] = self.send k.to_sym
       end
       h.to_json
     end

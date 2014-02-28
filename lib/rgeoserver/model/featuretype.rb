@@ -83,7 +83,7 @@ module RGeoServer
     def message
       h = { :featureType => { } }
       OBJ_ATTRIBUTES.each do |k|
-        h[:featureType][k.to_sym] = self.send k
+        h[:featureType][k.to_sym] = self.send k.to_sym
       end
       h.to_json
     end

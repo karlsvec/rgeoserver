@@ -1,7 +1,7 @@
 
 module RGeoServer
   # base class for all GeoServer resources
-  class ResourceInfo
+  class ResourceInfo < ActiveResource::Base
 
     include ActiveModel::Dirty
     extend ActiveModel::Callbacks

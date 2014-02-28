@@ -2,25 +2,24 @@
 module RGeoServer
   # A layer is a published resource (feature type or coverage).
   class Layer < ResourceInfo
+
     # attr_accessors
     # @see http://geoserver.org/display/GEOS/Catalog+Design
-    OBJ_ATTRIBUTES = { 
-      :enabled => 'enabled', 
-      :queryable => 'queryable', 
-      :path => 'path', 
-      :name => 'name', 
-      :default_style => 'default_style', 
-      :alternate_styles => 'alternate_styles', 
-      :metadata => 'metadata', 
-      :attribution => 'attribution', 
-      :layer_type => 'type' 
+    OBJ_ATTRIBUTES = %w{
+      enabled
+      queryable
+      path
+      name
+      default_style
+      alternative_styles
+      metadata
+      attribution
+      type
     }
     OBJ_DEFAULT_ATTRIBUTES = {
       :enabled => 'true',
       :queryable => 'true',
       :path => '/',
-      :name => nil,
-      :default_style => nil,
       :alternate_styles => [],
       :metadata => {
         'GWC.autoCacheStyles' => 'true',
@@ -33,11 +32,10 @@ module RGeoServer
         'logo_height' => '0',
         'logo_width' => '0',
         'title' => ''
-      },
-      :layer_type => nil
+      }
     }
 
-    define_attribute_methods OBJ_ATTRIBUTES.keys
+    define_attribute_methods OBJ_ATTRIBUTES
     update_attribute_accessors OBJ_ATTRIBUTES
 
     # @return [OrderedHash]
@@ -62,59 +60,12 @@ module RGeoServer
       end
     end
 
-    def resource= r
-      if r.is_a?(RGeoServer::Coverage) || r.is_a?(RGeoServer::FeatureType)
-        @resource = r
-      else
-        raise RGeoServer::ArgumentError, "Unknown resource type: #{r.class}"
-      end
-    end
-
-    def resource
-      @resource ||= begin
-        unless profile['resource'].empty?
-          data_type = profile['resource']['type']
-          workspace = profile['resource']['workspace']
-          name = profile['resource']['name']
-          store = profile['resource']['store']
-
-          case data_type
-          when 'coverage'
-            return RGeoServer::Coverage.new catalog, :workspace => workspace, :coverage_store => store, :name => name
-          when 'featureType'
-            begin
-              ft = RGeoServer::FeatureType.new catalog, :workspace => workspace, :data_store => store, :name => name
-            rescue Exception => e
-            end
-            
-            return ft
-          else
-            raise RGeoServer::ArgumentError, "Unknown resource type: #{data_type}"
-          end
-        else
-          nil
-        end
-      rescue Exception => e
-        nil
-      end
-    end
-
     def styles
-      raise NotImplemented
+      raise NotImplementedError
     end
     
     def get_style name
-      raise NotImplemented
-    end
-    
-    def workspace
-      resource.workspace
-    end
-
-    # Return full name of resource with namespace prefix
-    def prefixed_name
-      return "#{workspace.name}:#{name}" if self.respond_to?(:workspace)
-      raise RGeoServer::ArgumentError, "Workspace is not defined for this resource"
+      raise NotImplementedError
     end
 
     #= GeoWebCache Operations for this layer
@@ -138,88 +89,52 @@ module RGeoServer
     # @option operation[Symbol] :truncate seed
     # @option operation[Symbol] :status of the seeding thread
     # @param[Hash] options for seed message. Read the documentation
-    def seed operation, options
-      op = operation.to_sym
-      sub_path = "seed/#{prefixed_name}"
+    def seed op, options
+      sub_path = "seed/#{resource.workspace.name}:#{@name}"
       case op
       when :issue
         catalog.do_url sub_path, _build_seed_request(:seed, options), :post, {}, catalog.gwc_client
       when :truncate
         catalog.do_url sub_path, _build_seed_request(:truncate, options), :post, {}, catalog.gwc_client
       when :status
-        raise NotImplementedError, "#{op}"
+        raise NotImplementedError, op.to_s
+      else
+        raise ArgumentError, "Unknown operation: #{op}"
       end
     end
 
     protected
+    
+    def resource= r
+      unless r.is_a?(RGeoServer::Coverage) or r.is_a?(RGeoServer::FeatureType)
+        raise RGeoServer::ArgumentError, "Unknown resource type: #{r.class}"
+      end
+      @resource = r
+    end
+
+    def resource
+      @resource ||= begin
+        h = profile['resource']
+        raise ArgumentError, 'Missing resource' if h.nil? or h.empty?
+        w = catalog.get_workspace(h['workspace'])
+        case h['type'].downcase.to_sym
+        when :coverage
+          return w.get_coveragestore(h['store']).get_coverage(h['name'])
+        when :featuretype
+          return w.get_datastore(h['store']).get_featuretype(h['name'])
+        else
+          raise RGeoServer::ArgumentError, "Unknown resource type: #{h['type']}"
+        end
+      end
+    end
+    
     def message
-      Nokogiri::XML::Builder.new do |xml|
-        xml.layer {
-          xml.name name
-          xml.path path
-          xml.type_ layer_type
-          xml.enabled enabled
-          xml.queryable queryable
-          xml.defaultStyle {
-            xml.name default_style
-          }
-          xml.styles {
-            alternate_styles.each { |s|
-              xml.style {
-                xml.name s
-              }
-            }
-          } unless alternate_styles.empty?
-          xml.resource(:class => resource.class.resource_name){
-            xml.name resource.name
-          } unless resource.nil?
-          xml.metadata {
-            metadata.each_pair { |k,v|
-              xml.entry(:key => k) {
-                xml.text v
-              }
-            }
-          }
-          xml.attribution {
-            xml.title attribution['title'] unless attribution['title'].empty?
-            xml.logoWidth attribution['logo_width']
-            xml.logoHeight attribution['logo_height']
-          } if !attribution['logo_width'].nil? && !attribution['logo_height'].nil?
-        }
-      end.doc.to_xml
+      h = { :layer => { } }
+      OBJ_ATTRIBUTES.each do |k|
+        h[:layer][k.to_sym] = self.send k.to_sym
+      end
+      h.to_json
     end
-
-    def profile_xml_to_hash xml
-      doc = Nokogiri::XML(xml).at_xpath('/layer')
-      name = doc.at_xpath('//name').text.strip
-      link = doc.at_xpath('//resource//atom:link/@href', "xmlns:atom"=>"http://www.w3.org/2005/Atom").text.strip
-      workspace, _, store = link.match(/workspaces\/(.*?)\/(.*?)\/(.*?)\/(.*?)\/#{name}.xml$/).to_a[1,3]
-
-      h = {
-        "name" => name,
-        "path" => doc.at_xpath('//path').text,
-        "default_style" => doc.at_xpath('//defaultStyle/name').text,
-        "alternate_styles" => doc.xpath('//styles/style/name').collect{ |s| s.text},
-        # Types can be: VECTOR, RASTER, REMOTE, WMS
-        "type" => doc.at_xpath('//type').text,
-        "enabled" => doc.at_xpath('//enabled').text,
-        "queryable" => doc.at_xpath('//queryable').text,
-        "attribution" => {
-          "title" => doc.at_xpath('//attribution/title').text,
-          "logo_width" => doc.at_xpath('//attribution/logoWidth').text,
-          "logo_height" => doc.at_xpath('//attribution/logoHeight').text
-        },
-        "resource" => {
-          "type" => doc.at_xpath('//resource/@class').to_s,
-          "name" => doc.at_xpath('//resource/name').text,
-          "store" => store,
-          "workspace" => workspace
-        },
-        "metadata" => doc.xpath('//metadata/entry').inject({}){ |h2, e| h2.merge(e['key']=> e.text.to_s) }
-      }.freeze
-      h
-    end
-
 
     private
     # @param[Hash] options for seed message, requiring
@@ -232,40 +147,7 @@ module RGeoServer
     #  options[:gridSetId]
     #
     def _build_seed_request operation, options
-      Nokogiri::XML::Builder.new do |xml|
-        xml.seedRequest {
-          xml.name prefixed_name
-
-          xml.srs {
-            xml.number options[:srs][:number]
-          } unless options[:srs].nil? #&& options[:srs].is_a?(Hash)
-
-          xml.bounds {
-            xml.coords {
-              options[:bounds][:coords].each { |dbl|
-                xml.double dbl
-              }
-            }
-          } unless options[:bounds].nil?
-
-          xml.type_ operation
-
-          [:gridSetId, :zoomStart, :zoomStop, :threadCount].each { |p|
-            eval "xml.#{p.to_s} options[p]" unless options[p].nil?
-          }
-          
-          xml.format_ options[:tileFormat] unless options[:tileFormat].nil?
-
-          xml.parameters {
-            options[:parameters].each_pair { |k,v|
-              xml.entry {
-                xml.string k.upcase
-                xml.string v
-              }
-            }
-          } if options[:parameters].is_a?(Hash)
-        }
-      end.doc.to_xml
+      raise NotImplementedError
     end
   end
 
