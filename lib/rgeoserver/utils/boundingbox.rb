@@ -17,24 +17,20 @@ module RGeoServer
     
     # @param [Array] a in [minx, miny, maxx, maxy]
     def self.from_a a
-      self.class.new Hash.new('minx' => a[0].to_f,
-                              'miny' => a[1].to_f,
-                              'maxx' => a[2].to_f,
-                              'maxy' => a[3].to_f)
-        
+      BoundingBox.new({
+        'minx' => a[0].to_f,
+        'miny' => a[1].to_f,
+        'maxx' => a[2].to_f,
+        'maxy' => a[3].to_f
+      })
     end
 
     def initialize options = {}
       reset
-      if ['minx', 'miny', 'maxx', 'maxy'].all? {|k| options.include?(k)}
+      if %w{minx miny maxx maxy}.all? {|k| options.include?(k)} 
         add options['minx'].to_f, options['miny'].to_f # SW
-        add options['maxx'].to_f, options['maxx'].to_f # NE
+        add options['maxx'].to_f, options['maxy'].to_f # NE
       end
-    end
-
-    def reset
-      @minx = @miny = @maxx = @maxy = 0.0
-      @empty = true
     end
 
     def << point
@@ -45,14 +41,13 @@ module RGeoServer
       if @empty
         @minx = @maxx = x
         @miny = @maxy = y
+        @empty = false
+      else
+        @minx = [minx, x].min
+        @miny = [miny, y].min
+        @maxx = [maxx, x].max
+        @maxy = [maxy, y].max
       end
-
-      @minx = [minx, x].min
-      @miny = [miny, y].min
-      @maxx = [maxx, x].max
-      @maxy = [maxy, y].max
-
-      @empty = false
     end
 
     # @return [Array]
@@ -75,6 +70,7 @@ module RGeoServer
       add _maxx, _maxy
     end
 
+    # alias for `expand(-rate)`
     def constrict rate = @@epsilon
       expand(-rate)
     end
@@ -100,15 +96,15 @@ module RGeoServer
     def to_geometry
       factory = RGeo::Cartesian::Factory.new
 
-      point_min, point_max = unless [minx, miny] == [maxx, maxy]
-        [factory.point(minx, miny), factory.point(maxx, maxy)]
+      sw_pt, ne_pt = unless sw == ne
+        [factory.point(w, s), factory.point(e, n)]
       else
-        [factory.point(minx - @@epsilon, miny - @@epsilon),
-         factory.point(maxx + @@epsilon, maxy + @@epsilon)]
+        [factory.point(w - @@epsilon, s - @@epsilon),
+         factory.point(e + @@epsilon, n + @@epsilon)]
       end
 
-      line_string = factory.line_string [point_min, point_max]
-      line_string.envelope
+      sw_to_ne = factory.line_string [sw_pt, ne_pt]
+      sw_to_ne.envelope
     end
     
     # @return [Hash]
@@ -121,9 +117,9 @@ module RGeoServer
       }
     end
 
-    # @return [Array]
+    # @return [Array] as w, s, e, n
     def to_a
-      [minx, miny, maxx, maxy]
+      [w, s, e, n]
     end
 
     # @return [String]
@@ -133,6 +129,18 @@ module RGeoServer
 
     def inspect
       "#<#{self.class} #{to_s}>"
+    end
+    
+    def n; @maxy; end
+    def s; @miny; end
+    def w; @minx; end
+    def e; @maxx; end
+    def ne; [e, n]; end
+    def sw; [w, s]; end
+    
+    def reset
+      @minx = @miny = @maxx = @maxy = 0.0
+      @empty = true
     end
   end
 end

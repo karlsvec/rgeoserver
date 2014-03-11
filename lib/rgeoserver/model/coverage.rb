@@ -36,7 +36,7 @@ module RGeoServer
       'ISO19139' => 'application/vnd.iso.19139+xml',
       'TC211' => 'application/vnd.iso.19139+xml'
     }
-   
+
     define_attribute_methods OBJ_ATTRIBUTES
     update_attribute_accessors OBJ_ATTRIBUTES
 
