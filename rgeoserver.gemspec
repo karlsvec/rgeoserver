@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.name = "rgeoserver"
   s.version = RGeoServer::VERSION
   s.platform = Gem::Platform::RUBY
-  s.required_ruby_version = "~> 1.9.3"
+  s.required_ruby_version = ">= 1.9.3"
   s.authors = ["Renzo Sanchez-Silva", "Bess Sadler", "Darren Hardy"]
   s.email = ["drh@stanford.edu"]
   s.summary = %q{GeoServer REST API Ruby library }
