@@ -1,31 +1,24 @@
-GIT
-  remote: https://github.com/drh-stanford/version_bumper.git
-  revision: 0a682b031a6ba6c3de635687b7f1986be5bcd9a5
-  branch: patch_tag
-  specs:
-    version_bumper (0.4.1.pre1)
-
 PATH
   remote: .
   specs:
-    rgeoserver (0.6.4.3)
-      activemodel (~> 3.2.14)
-      activesupport (~> 3.2.14)
-      confstruct (~> 0.2.5)
-      mime-types (~> 1.24)
-      nokogiri (~> 1.5)
-      rest-client (~> 1.6.7)
-      rgeo (~> 0.3.20)
-      rgeo-shapefile (~> 0.2.3)
-      rubyzip (~> 0.9.9)
+    rgeoserver (0.7)
+      activemodel (~> 3.2.0)
+      activesupport (~> 3.2.0)
+      confstruct (~> 0.2.0)
+      mime-types (~> 2.0)
+      nokogiri (~> 1.6.0)
+      rest-client (~> 1.6.0)
+      rgeo (~> 0.3.0)
+      rgeo-shapefile (~> 0.2.0)
+      rubyzip (~> 0.9.0)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    activemodel (3.2.15)
-      activesupport (= 3.2.15)
+    activemodel (3.2.16)
+      activesupport (= 3.2.16)
       builder (~> 3.0.0)
-    activesupport (3.2.15)
+    activesupport (3.2.16)
       i18n (~> 0.6, >= 0.6.4)
       multi_json (~> 1.0)
     alias (0.2.3)
@@ -41,7 +34,7 @@ GEM
     coderay (1.1.0)
     columnize (0.3.6)
     confstruct (0.2.5)
-    dbf (2.0.6)
+    dbf (2.0.7)
       fastercsv (~> 1.5.4)
     debugger (1.6.3)
       columnize (>= 0.3.1)
@@ -50,7 +43,7 @@ GEM
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.2.4)
     diff-lcs (1.2.5)
-    equivalent-xml (0.3.0)
+    equivalent-xml (0.4.0)
       nokogiri (>= 1.4.3)
     every_day_irb (1.5.1)
     fancy_irb (0.7.3)
@@ -60,7 +53,7 @@ GEM
     ffi (1.9.3)
     g (1.7.2)
     hirb (0.7.1)
-    i18n (0.6.5)
+    i18n (0.6.9)
     interactive_editor (0.0.10)
       spoon (>= 0.0.1)
     irbtools (1.5.1)
@@ -94,10 +87,10 @@ GEM
     method_locator (0.0.4)
     method_source (0.8.2)
     methodfinder (2.0.0)
-    mime-types (1.25.1)
+    mime-types (2.0)
     mini_portile (0.5.2)
     multi_json (1.8.2)
-    nokogiri (1.6.0)
+    nokogiri (1.6.1)
       mini_portile (~> 0.5.0)
     ori (0.1.0)
     paint (0.8.6)
@@ -142,7 +135,7 @@ PLATFORMS
 DEPENDENCIES
   awesome_print
   bundler (~> 1.0)
-  debugger (~> 1.5)
+  debugger (~> 1.0)
   equivalent-xml
   irbtools
   jettywrapper
@@ -151,5 +144,4 @@ DEPENDENCIES
   rgeoserver!
   rspec
   shoulda
-  version_bumper!
   yard
