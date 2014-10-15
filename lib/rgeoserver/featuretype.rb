@@ -1,4 +1,3 @@
-
 module RGeoServer
   # A feature type is a vector based spatial resource or data set that originates from a data store.
   # In some cases, like Shapefile, a feature type has a one-to-one relationship with its data store.
@@ -133,21 +132,9 @@ module RGeoServer
 
           xml.projectionPolicy get_projection_policy_message(projection_policy) if projection_policy and new? or projection_policy_changed?
 
-          if new? # XXX: hard coded attributes
-            xml.attributes {
-              xml.attribute {
-                xml.name 'the_geom'
-                xml.minOccurs 0
-                xml.maxOccurs 1
-                xml.nillable true
-                xml.binding 'com.vividsolutions.jts.geom.Point'
-              }
-            }
-          end
         }
       end
       @message = builder.doc.to_xml
-      ap({:message => @message}) if $DEBUG
       @message
     end
 
@@ -227,7 +214,6 @@ module RGeoServer
           }
         }
       }.freeze
-      ap({:h => h}) if $DEBUG
       h
     end
 
