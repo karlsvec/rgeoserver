@@ -70,7 +70,7 @@ module RGeoServer
           xml.enabled @enabled if enabled_changed? or new?
           if new?
             xml.nativeName @name
-            xml.abstract @abtract if abstract_changed?
+            xml.abstract @abstract if abstract_changed?
             xml.metadataLinks {
               @metadata_links.each do |m|
                 xml.metadataLink {
