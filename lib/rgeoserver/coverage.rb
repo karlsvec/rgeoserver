@@ -65,22 +65,21 @@ module RGeoServer
     def message
       builder = Nokogiri::XML::Builder.new do |xml|
         xml.coverage {
+          xml.nativeName @name if new? # on new only
           xml.name @name
-          xml.title @title 
+          xml.title @title if title_changed? || new?
+          xml.abstract @abstract if abstract_changed? || new?
           xml.enabled @enabled if enabled_changed? or new?
-          if new?
-            xml.nativeName @name
-            xml.abstract @abstract if abstract_changed?
-            xml.metadataLinks {
-              @metadata_links.each do |m|
-                xml.metadataLink {
-                  xml.type_ to_mimetype(m['metadataType'])
-                  xml.metadataType m['metadataType']
-                  xml.content m['content']
-                }
-              end
-            } if @metadata_links
-          end
+          xml.metadataLinks {
+            @metadata_links.each do |m|
+              raise ArgumentError, "Malformed metadata_links" unless m.is_a? Hash
+              xml.metadataLink {
+                xml.type_ to_mimetype(m['metadataType'])
+                xml.metadataType m['metadataType']
+                xml.content m['content']
+              }
+            end
+          } unless @metadata_links.empty?
           xml.keywords {
             @keywords.each do |k|
               xml.keyword RGeoServer::Metadata::to_keyword(k)
