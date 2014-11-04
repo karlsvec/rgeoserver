@@ -86,7 +86,7 @@ module RGeoServer
         'sld_version' => doc.at_xpath('//sldVersion/version/text()').to_s,
         'filename' => doc.at_xpath('//filename/text()').to_s,
         'sld_doc' => begin
-          Nokogiri::XML(@catalog.search({:styles => @name}, options={:format => 'sld'})).to_xml
+          Nokogiri::XML(@catalog.search({:styles => @name}, options={:format => :sld})).to_xml
         rescue RestClient::ResourceNotFound
           nil 
         end
