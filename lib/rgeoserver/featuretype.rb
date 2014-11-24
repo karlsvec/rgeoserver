@@ -26,7 +26,7 @@ module RGeoServer
       :data_store => nil,
       :name => nil,
       :native_name => nil,
-      :enabled => "false",
+      :enabled => "true",
       :metadata => {},
       :metadata_links => {},
       :title => nil,
@@ -175,6 +175,7 @@ module RGeoServer
       ap({:doc => doc, :ft => ft}) if $DEBUG
       h = {
         "name" => ft.at_xpath('name').text,
+        "enabled" => ft.at_xpath('enabled/text()').to_s,
         "native_name" => ft.at_xpath('nativeName').text,
         "title" => ft.at_xpath('title').text,
         "abstract" => ft.at_xpath('abstract/text()'), # optional

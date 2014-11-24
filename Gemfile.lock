@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rgeoserver (0.7)
+    rgeoserver (0.7.6)
       activemodel (~> 3.2.0)
       activesupport (~> 3.2.0)
       confstruct (~> 0.2.0)
