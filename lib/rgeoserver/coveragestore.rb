@@ -59,7 +59,7 @@ module RGeoServer
           xml.workspace {
             xml.name @workspace.name
           }
-          xml.enabled @enabled if (enabled_changed? || new?)
+          xml.enabled @enabled
           xml.type_ @data_type if (data_type_changed? || new?)
           xml.description @description if (description_changed? || new?)
           xml.url @url if (url_changed? || new?)

@@ -69,7 +69,7 @@ module RGeoServer
           xml.name @name
           xml.title @title if title_changed? || new?
           xml.abstract @abstract if abstract_changed? || new?
-          xml.enabled @enabled if enabled_changed? or new?
+          xml.enabled @enabled
           xml.metadataLinks {
             @metadata_links.each do |m|
               raise ArgumentError, "Malformed metadata_links" unless m.is_a? Hash
