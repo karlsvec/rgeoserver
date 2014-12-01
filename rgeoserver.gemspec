@@ -21,7 +21,6 @@ Gem::Specification.new do |s|
   s.add_dependency "activemodel", "~> 3.2.0"
   s.add_dependency "activesupport", "~> 3.2.0"
   s.add_dependency "confstruct", "~> 0.2.0"
-  s.add_dependency "mime-types", "~> 2.0"
   s.add_dependency "nokogiri", "~> 1.6.0"
   s.add_dependency "rest-client", "~> 1.6.0"
   s.add_dependency "rgeo", "~> 0.3.0"
